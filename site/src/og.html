@@ -1,0 +1,32 @@
+<!doctype html>
+<!-- Source for og.png, the 1200x630 share preview. Re-render after changing it: open in headless Chrome at
+     --window-size=1200,630 with --allow-file-access-from-files and --screenshot=site/src/og.png. -->
+<html><head><meta charset="utf-8"><style>
+  @font-face { font-family: "Pacifico"; src: url("../../pi/fonts/pacifico.woff2") format("woff2"); }
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #12161d; color: #eef1f5;
+               font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 90px 150px; }
+  .mark { display: flex; align-items: center; gap: 28px; }
+  .mark img { width: 120px; height: 120px; }
+  h1 { font-family: "Pacifico", cursive; font-weight: 400; font-size: 104px; margin: 0; line-height: 1.2; }
+  p { font-size: 38px; line-height: 1.3; color: #a3adbb; margin: 26px 0 0; max-width: 980px; }
+  p b { color: #eef1f5; font-weight: 600; }
+  .string { position: absolute; left: 0; right: 0; bottom: 70px; height: 70px; display: flex; justify-content: space-around; padding: 0 40px; }
+  .string::before { content: ""; position: absolute; left: 0; right: 0; top: 8px; height: 3px; background: #2b3442; }
+  .bulb { position: relative; display: flex; flex-direction: column; align-items: center; width: 40px; }
+  .bulb i { width: 12px; height: 12px; background: #4a5566; border-radius: 2px; margin-top: 4px; }
+  .bulb b { display: block; width: 26px; height: 42px; border-radius: 50% 50% 50% 50% / 38% 38% 62% 62%;
+            background: var(--c); box-shadow: 0 0 22px var(--c); }
+</style></head><body>
+<div class="wrap">
+  <div class="mark"><img src="../../pi/logo.svg" alt=""><h1>String Theory</h1></div>
+  <p><b>Light shows for NOMA/Tuya smart light strings,</b> all year round. Run on your own Raspberry Pi or home computer, controlled from your phone.</p>
+</div>
+<div class="string" id="s"></div>
+<script>
+  // Sunrise colours from the centre out, then the classic palette at the ends.
+  const cols = ['#ff0000', '#00ff00', '#ffb400', '#0028ff', '#ff6400', '#ff0000', '#ff6400', '#ffb400', '#ffffff', '#ffffff',
+                '#ffffff', '#ffb400', '#ff6400', '#ff0000', '#ff6400', '#0028ff', '#ffb400', '#00ff00', '#ff0000', '#ff6400'];
+  document.getElementById('s').innerHTML = cols.map(c => `<div class="bulb" style="--c:${c}"><i></i><b></b></div>`).join('');
+</script>
+</body></html>

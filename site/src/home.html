@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12161d">
+<title>String Theory: light shows for NOMA/Tuya smart light strings</title>
+<meta name="description" content="Run your NOMA/Tuya smart light strings as one long string, with shows for every season, playlists, schedules and a phone app. Free software you run on your own home computer or Raspberry Pi. Not a hosted service.">
+<link rel="canonical" href="https://stringtheory.space.fast/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="String Theory">
+<meta property="og:title" content="String Theory: light shows for NOMA/Tuya smart light strings">
+<meta property="og:description" content="Shows for every season, playlists and schedules for your smart light strings, run on your own Raspberry Pi or home computer and controlled from your phone. Free and open source.">
+<meta property="og:url" content="https://stringtheory.space.fast/">
+<meta property="og:image" content="https://stringtheory.space.fast/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="String Theory: a string of glowing coloured C9 bulbs under the title">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="String Theory: light shows for NOMA/Tuya smart light strings">
+<meta name="twitter:description" content="Shows for every season, playlists and schedules, run on your own Raspberry Pi or home computer. Free and open source.">
+<meta name="twitter:image" content="https://stringtheory.space.fast/og.png">
+<script type="application/ld+json">
+{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "String Theory",
+ "description": "Free, self-hosted light shows, schedules and a phone control page for NOMA/Tuya Wi-Fi smart light strings.",
+ "url": "https://stringtheory.space.fast/", "image": "https://stringtheory.space.fast/og.png", "applicationCategory": "HomeApplication",
+ "operatingSystem": "Raspberry Pi OS, Linux, macOS, Windows, Docker", "license": "https://opensource.org/licenses/MIT",
+ "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+ "codeRepository": "https://github.com/chadworthman/StringTheory", "keywords": "NOMA, Tuya, Smart Life, Christmas lights, RGBIC, light show, Raspberry Pi"}
+</script>
+<link rel="preload" href="/fonts/pacifico.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.png">
+<style>
+  @font-face { font-family: "Pacifico"; src: url("/fonts/pacifico.woff2") format("woff2"); font-display: block; }
+  :root {
+    --night: #12161d; --panel: #1b212b; --edge: #2b3442; --text: #eef1f5; --muted: #a3adbb;
+    --amber: #ffbe55; --alert: #e5483f; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--night); color: var(--text);
+         font: 18px/1.55 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--amber); }
+  :focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 22px; }
+
+  /* Hero: the name, and a string of bulbs playing real shows */
+  .hero { padding: max(36px, env(safe-area-inset-top)) 0 56px; text-align: center; }
+  .mark { display: inline-flex; align-items: center; gap: 14px; }
+  .mark img { width: 64px; height: 64px; border-radius: 16px; }
+  .mark h1 { font: 400 clamp(46px, 9vw, 84px)/1.15 "Pacifico", ui-rounded, cursive; margin: 0; transform: translateY(-4px); }
+  .tagline { font-size: clamp(19px, 2.6vw, 24px); color: var(--text); max-width: 34em; margin: 14px auto 0; }
+  .tagline span { color: var(--muted); }
+  .string { margin: 40px auto 6px; max-width: 980px; display: grid; gap: 18px; }
+  .wire { display: flex; position: relative; height: 40px; }
+  .wire::before { content: ""; position: absolute; left: 0; right: 0; top: 4px; height: 2px; background: var(--edge); }
+  .bulb { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+  .bulb i { width: 5px; height: 6px; background: #4a5566; border-radius: 1px; margin-top: 3px; }
+  .bulb b { width: min(70%, 15px); aspect-ratio: 0.62; border-radius: 50% 50% 50% 50% / 38% 38% 62% 62%;
+            background: var(--c, #303846); box-shadow: 0 0 12px var(--c, transparent); }
+  .playing { color: var(--muted); font-size: 15px; min-height: 1.5em; margin: 6px 0 0; }
+  .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+  .btn { display: inline-flex; align-items: center; min-height: 54px; padding: 0 26px; border-radius: 999px;
+         font-weight: 700; text-decoration: none; }
+  .btn.primary { background: var(--amber); color: var(--night); }
+  .btn.secondary { border: 1px solid var(--edge); color: var(--text); background: var(--panel); }
+
+  section { padding: 56px 0; border-top: 1px solid var(--panel); }
+  h2 { font-size: clamp(28px, 4vw, 38px); line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .lede { color: var(--muted); max-width: 40em; margin: 0 0 28px; }
+
+  .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+  .feature { background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 20px 22px; }
+  .feature h3 { margin: 0 0 6px; font-size: 19px; }
+  .feature p { margin: 0; color: var(--muted); font-size: 16px; }
+  .feature .dots { display: flex; gap: 5px; margin-bottom: 12px; }
+  .feature .dots span { width: 9px; height: 14px; border-radius: 50% 50% 50% 50% / 38% 38% 62% 62%; box-shadow: 0 0 8px currentColor; background: currentColor; }
+
+  .demo { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: center; }
+  .phone { width: 390px; height: 780px; border-radius: 46px; border: 10px solid #0a0d12; background: #0a0d12;
+           box-shadow: 0 30px 60px -20px rgba(0, 0, 0, .7), 0 0 0 1px var(--edge); overflow: hidden; }
+  .phone iframe { width: 100%; height: 100%; border: 0; border-radius: 36px; display: block; }
+  .demo ul { color: var(--muted); padding-left: 20px; margin: 0 0 24px; }
+  .demo li { margin-bottom: 6px; }
+  .demo li strong { color: var(--text); }
+  @media (max-width: 860px) { .demo { grid-template-columns: 1fr; } .phone { display: none; } }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 14px;
+           grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+  .steps li { counter-increment: step; background: var(--panel); border: 1px solid var(--edge); border-radius: 18px; padding: 20px 22px; }
+  .steps li::before { content: counter(step); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%;
+                      background: var(--amber); color: var(--night); font-weight: 800; margin-bottom: 10px; }
+  .steps h3 { margin: 0 0 6px; font-size: 19px; }
+  .steps p { margin: 0; color: var(--muted); font-size: 16px; }
+
+  .self-hosted { max-width: 40em; margin: 0 0 28px; padding: 14px 18px; border: 1px solid var(--edge); border-radius: 12px; background: var(--panel); color: var(--muted); }
+  .self-hosted strong { color: var(--text); }
+  .need { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+  .need div { border-left: 3px solid var(--amber); padding: 4px 0 4px 16px; }
+  .need h3 { margin: 0 0 4px; font-size: 19px; }
+  .need p { margin: 0; color: var(--muted); font-size: 16px; }
+
+  footer { border-top: 1px solid var(--panel); padding: 32px 0 max(40px, env(safe-area-inset-bottom)); color: var(--muted); font-size: 15px; }
+  footer p { margin: 0 0 8px; }
+
+  /* Each bulb shows exactly one colour: glows are drawn first, then every bulb's solid body on top, so a
+     neighbour's glow can never tint part of a bulb (real bulbs can't show two colours at once). */
+  .wire { isolation: isolate; }
+  .bulb b { position: relative; }
+  .bulb b::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: inherit; z-index: 2; }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="mark"><img src="/logo.svg" alt=""><h1>String Theory</h1></div>
+    <p class="tagline">Light shows for your NOMA/Tuya smart light strings, all year round. <span>Run every string as one, pick from dozens of shows or make your own, and control it all from your phone. You run it yourself on a home computer or Raspberry Pi.</span></p>
+    <div class="string" id="string" aria-hidden="true"></div>
+    <p class="playing" id="playing" aria-live="off"></p>
+    <div class="ctas">
+      <a class="btn primary" href="/demo/#still">Try the live demo</a>
+      <a class="btn secondary" href="#get">Get String Theory</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="wrap">
+      <h2>What it does</h2>
+      <p class="lede">Smart light apps play each string's built-in effects on their own. String Theory sets every bulb's colour itself, so your strings can do much more.</p>
+      <div class="features">
+        <div class="feature"><div class="dots" style="color:#ff2a1a"><span></span><span></span><span></span><span style="color:#2bd94a"></span><span style="color:#2bd94a"></span></div>
+          <h3>One long string</h3><p>Lay strings end to end and every show runs across all of them, with chases flowing from one string into the next. Use as many strings as you like.</p></div>
+        <div class="feature"><div class="dots" style="color:#ffc21a"><span></span><span style="color:#2b5cff"></span><span style="color:#ff7a1a"></span><span style="color:#2bd94a"></span><span style="color:#ff2a1a"></span></div>
+          <h3>Shows for every season</h3><p>Valentine's Day, St. Patrick's Day, Easter, Canada Day and Fourth of July fireworks, Halloween, Hanukkah, Christmas and New Year's Eve, plus rainbows, sunsets, aurora colours, embers, Fibonacci and more. Most still themes can animate too.</p></div>
+        <div class="feature"><div class="dots" style="color:#2bd94a"><span></span><span style="color:#ffffff"></span><span style="color:#ff2a1a"></span><span style="color:#ffffff"></span><span></span></div>
+          <h3>Make your own</h3><p>Pick colours and an effect to make a pattern, or build a playlist that switches between themes with chases, fades or quick changes.</p></div>
+        <div class="feature"><div class="dots" style="color:#ff7a1a"><span></span><span></span><span style="color:#be00ff"></span><span style="color:#be00ff"></span><span style="color:#005a0a"></span></div>
+          <h3>Schedules and zones</h3><p>Lights come on and off on their own every day. Group strings into zones, such as the porch and the garage, each with its own show and timetable. Holiday autopilot picks the show by date.</p></div>
+        <div class="feature"><div class="dots" style="color:#eef1f5"><span></span><span></span><span></span><span></span><span></span></div>
+          <h3>A real app on your phone</h3><p>Add it to your home screen. The bulbs at the top show what your lights are doing right now, and every show's card plays a preview.</p></div>
+        <div class="feature"><div class="dots" style="color:#2b5cff"><span></span><span style="color:#50c8ff"></span><span style="color:#ffffff"></span><span style="color:#50c8ff"></span><span></span></div>
+          <h3>Runs in your home</h3><p>Not a hosted service: you run it on your own Pi or home computer. It talks to your lights over your home Wi-Fi, with no cloud or account, and the app only works on your network.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="wrap demo">
+      <div>
+        <h2>Try it now</h2>
+        <p class="lede">The demo is the real app, with pretend lights. Everything works except lighting actual bulbs:</p>
+        <ul>
+          <li><strong>Shows:</strong> browse every show and watch its preview. Flip <strong>Animate</strong> on still themes.</li>
+          <li><strong>Create:</strong> make a pattern from your own colours, or build a playlist.</li>
+          <li><strong>Now:</strong> the bulbs at the top play whatever you pick. Try the power buttons and the speed slider.</li>
+        </ul>
+        <p class="lede">Anything you make is saved in your browser only.</p>
+        <a class="btn primary" href="/demo/#still">Open the demo</a>
+      </div>
+      <div class="phone"><iframe src="/demo/#still" title="String Theory demo app" loading="lazy"></iframe></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>What you need</h2>
+      <p class="lede">About an hour, once.</p>
+      <p class="self-hosted"><strong>String Theory isn't a hosted service.</strong> There's no account to sign up for and nothing runs on this website: you download it and run it on a computer in your home, on the same Wi-Fi as your lights. This site is just information and a demo with pretend lights.</p>
+      <div class="need">
+        <div><h3>NOMA/Tuya Wi-Fi light strings</h3><p>Strings that work in the Smart Life or Tuya Smart app, where each bulb can be its own colour (often sold as RGBIC, colour bar or dreamcolor). Tested with NOMA smart C9 lights.</p></div>
+        <div><h3>Something to run it</h3><p>A Raspberry Pi is ideal: always on and frugal, with a one-step installer. Any home computer (Mac, Windows or Linux, desktop or laptop) works too, directly or in Docker. The lights follow the schedule while it's on and awake.</p></div>
+        <div><h3>A free Tuya developer account</h3><p>Needed once to get each controller's local key. After that, everything runs at home without it.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="lede">Each light controller accepts a picture: one colour per bulb. String Theory works out each moment of the show and sends every string its part, two or three times a second.</p>
+      <ol class="steps">
+        <li><h3>Get the keys</h3><p>Move your lights into Smart Life, link it to a free Tuya developer project, and run the tinytuya wizard to save each string's local key.</p></li>
+        <li><h3>Start it up</h3><p>Run the Raspberry Pi installer, <code>docker compose up</code>, or the home computer script. It asks which strings you have and in what order.</p></li>
+        <li><h3>Open the app</h3><p>Browse to your Pi from your phone, add it to your home screen, and pick a show. Run <em>Find the seams</em> to check your strings are in order.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="get">
+    <div class="wrap">
+      <h2>Get String Theory</h2>
+      <p class="lede">String Theory is free and open source under the MIT licence. Download it from GitHub, where the README has full setup instructions for a Raspberry Pi, Docker or a home computer.</p>
+      <p class="self-hosted"><strong>No support is provided.</strong> String Theory is shared as-is, as a starting point for your own project. There's no help with setup and no promise it works with your lights. The guides in the repository, and an AI coding assistant, are the way to adapt it.</p>
+      <p><a class="btn primary" href="https://github.com/chadworthman/StringTheory">Get it on GitHub</a></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Made by <a href="https://chadworthman.com/">Chad Worthman</a>.</p>
+    <p>String Theory isn't affiliated with Tuya, NOMA or any other brand. Names of products belong to their owners.</p>
+    <p>Title set in Pacifico by the Pacifico Project Authors, under the SIL Open Font License.</p>
+  </div>
+</footer>
+
+<script>
+// The hero string plays real String Theory shows, from the same previews the demo app uses.
+(async () => {
+  const SHOWS = ['rainbowmove', 'fourthmove', 'sunsetmove', 'eastermove', 'halloween', 'candycane', 'auroramove', 'fibonacci', 'stpatsmove', 'embers', 'treetwinkle', 'jostle'];
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let data;
+  try { data = await (await fetch('/demo/data.json')).json(); } catch { return; }
+  const total = data.state.total, el = document.getElementById('string');
+  let rows = 0;
+  function build() {
+    const want = innerWidth < 640 ? 2 : 1;
+    if (want === rows) return;
+    rows = want; const per = Math.ceil(total / rows);
+    el.innerHTML = Array.from({length: rows}, (_, r) => `<div class="wire">${
+      Array.from({length: Math.min(per, total - r * per)}, () => '<span class="bulb"><i></i><b></b></span>').join('')}</div>`).join('');
+  }
+  build(); addEventListener('resize', build);
+  const name = id => data.state.shows.find(x => x.id === id)?.name || id;
+  function frameAt(id, t) {
+    const tl = data.previews[id]; if (!tl || tl.items) return null;
+    const c = tl.period ? t % tl.period : 0, f = tl.frames;
+    let lo = 0, hi = f.length - 1;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (f[m][0] <= c) lo = m; else hi = m - 1; }
+    return f[lo][1];
+  }
+  const start = Date.now() / 1000, HOLD = 8;
+  let last = '';
+  function tick() {
+    const t = Date.now() / 1000 - start, i = Math.floor(t / HOLD) % SHOWS.length, id = SHOWS[i];
+    const hex = frameAt(id, still ? 0 : t % HOLD + 1);
+    document.getElementById('playing').textContent = `Playing: ${name(id)}`;
+    if (!hex || hex === last) return;
+    last = hex;
+    [...el.querySelectorAll('.bulb b')].forEach((b, k) => {
+      const c = hex.substr(k * 6, 6);
+      b.style.setProperty('--c', c === '000000' ? '#303846' : '#' + c);
+    });
+  }
+  tick(); if (!still) setInterval(tick, 100); else setInterval(tick, HOLD * 1000);
+})();
+</script>
+</body>
+</html>

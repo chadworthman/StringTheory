@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /home/deploy/smartlights/venv/bin/python /home/deploy/smartlights/lights.py "$@"

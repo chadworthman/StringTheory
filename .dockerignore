@@ -1,0 +1,17 @@
+# Never put keys, credentials or your settings into the image
+data/
+devices.json
+tinytuya.json
+tuya-raw.json
+snapshot.json
+**/state.json
+**/engine.json
+**/health.json
+**/config.json
+CLAUDE.local.md
+.git/
+.venv/
+**/__pycache__/
+site/
+docs/
+tools/

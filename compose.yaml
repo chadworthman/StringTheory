@@ -1,0 +1,13 @@
+# String Theory with Docker:  docker compose up -d   then open http://<this-computer>:8080 on your phone.
+services:
+  string-theory:
+    build: .
+    image: string-theory
+    container_name: string-theory
+    restart: unless-stopped
+    ports:
+      - "8080:8080"          # the control page; keep it on your home network (no port forwarding)
+    volumes:
+      - ./data:/data         # devices.json (your keys), config.json (your strings) and settings
+    environment:
+      TZ: America/Toronto    # your timezone, so the schedule turns the lights on and off at the right time

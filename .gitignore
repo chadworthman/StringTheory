@@ -1,0 +1,28 @@
+# Keys, credentials and raw device dumps from the tinytuya wizard: never commit
+devices.json
+tinytuya.json
+tuya-raw.json
+snapshot.json
+
+# Private notes for Claude Code about this particular install
+CLAUDE.local.md
+
+# Runtime files the Pi writes
+state.json
+engine.json
+health.json
+*.tmp
+*.htmp
+
+__pycache__/
+venv/
+.venv/
+.DS_Store
+
+# Built website (python3 tools/build_site.py); .spacefast inside links it to the Space
+site/dist/
+
+# Local data folder used by scripts/run.sh, scripts/install-pi.sh and Docker (keys, strings, settings)
+data/
+config.json
+.venv/

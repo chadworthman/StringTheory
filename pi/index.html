@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12161d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="String Theory">
+<title>String Theory</title>
+<link rel="preload" href="/fonts/pacifico.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+  :root {
+    --night: #12161d;      /* night sky background */
+    --panel: #1b212b;      /* raised surfaces */
+    --edge:  #2b3442;      /* borders, wire */
+    --text:  #eef1f5;      /* main text */
+    --muted: #a3adbb;      /* secondary text */
+    --amber:  #ffbe55;      /* the selected thing glows like a lit bulb */
+    --alert:  #e5483f;      /* off */
+    --r-lg: 22px; --r-sm: 12px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }   /* class display rules must never un-hide things */
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--night); color: var(--text);
+    font: 17px/1.45 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: max(14px, env(safe-area-inset-top)) 16px calc(96px + env(safe-area-inset-bottom));
+  }
+  .topbar { max-width: 520px; margin: 0 auto; }
+  .topbar .brand { margin-bottom: 8px; }
+  .view-title { font-size: 30px; margin: 4px 0 14px; }
+  .view > h2:first-of-type { margin-top: 18px; }
+  h2 .for { color: var(--muted); font-weight: 500; font-size: 16px; }
+  .now-card { background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 16px;
+              display: grid; gap: 6px; }
+  .now-card .name { font-weight: 750; font-size: 20px; }
+  .now-card .desc { color: var(--muted); font-size: 15px; }
+  .now-card .btn2 { margin-top: 8px; }
+  .card-link { display: block; background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-sm);
+               padding: 16px; color: var(--text); text-decoration: none; font-weight: 650; }
+  .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: repeat(4, 1fr);
+                padding: 6px max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-bottom));
+                background: rgba(18, 22, 29, 0.94); border-top: 1px solid var(--edge);
+                -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .bottom-nav button { border: 0; background: none; color: var(--muted); display: grid; justify-items: center; gap: 3px;
+                       font-size: 12.5px; font-weight: 650; min-height: 54px; padding: 4px 0; max-width: 140px; justify-self: center; width: 100%; }
+  .bottom-nav svg { width: 25px; height: 25px; }
+  .bottom-nav button[aria-current="page"] { color: var(--amber); }
+  main { max-width: 520px; margin: 0 auto; min-width: 0; }
+  .credit { margin: 28px 0 8px; text-align: center; font-size: 13px; color: var(--muted); }
+  .credit a { color: inherit; }
+
+  section, header, .show, .power, .sched { min-width: 0; }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+
+  /* --- The one bold element: a string of C9 bulbs --- */
+  .wire { display: flex; align-items: flex-start; gap: 0; position: relative; height: 22px; }
+  .wire::before { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 2px;
+                  background: var(--edge); border-radius: 1px; }
+  .bulb { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; position: relative; }
+  .bulb i { width: 4px; height: 5px; background: #4a5566; border-radius: 1px; margin-top: 2px; }
+  .bulb b { width: min(72%, 9px); aspect-ratio: 0.62; border-radius: 50% 50% 50% 50% / 38% 38% 62% 62%;
+            background: var(--c); box-shadow: 0 0 6px var(--c); }
+  /* lights off: the show's own colours, dimmed and muted, with no glow (lights on: full colour with a glow) */
+  .dark .bulb b { filter: brightness(0.42) saturate(0.7); }
+  .live .wire:not(.dark) .bulb b { filter: brightness(var(--dim, 1)); }
+  .live .dark .bulb b, .dark .bulb b { box-shadow: none; }
+
+  header { margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 10px; margin: 0 0 16px; font-weight: 800; font-size: 19px;
+           letter-spacing: 0.01em; }
+  .brand img { border-radius: 9px; display: block; }
+  @font-face { font-family: "Pacifico"; src: url("/fonts/pacifico.woff2") format("woff2"); font-display: block; }
+  .brand span { font-family: "Pacifico", ui-rounded, cursive; font-weight: 400; font-size: 25px; letter-spacing: 0.01em;
+                line-height: 1.2; transform: translateY(-2px); }
+
+  .title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .title-row h1 { min-width: 0; overflow-wrap: anywhere; }
+  .rename { border: 0; background: none; color: var(--muted); font-size: 15px; padding: 8px 0 8px 8px; min-height: 40px; flex: none; }
+  .rename-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; margin: 14px 0 6px; }
+  .rename-form .btn1, .rename-form .btn2 { padding: 0 14px; min-height: 48px; }
+  .zone-switch { display: flex; gap: 6px; overflow-x: auto; margin: -4px 0 16px; padding-bottom: 2px; scrollbar-width: none; }
+  .zone-switch button { flex: none; border: 1px solid var(--edge); background: var(--panel); color: var(--muted);
+                        border-radius: 999px; min-height: 40px; padding: 0 16px; font-weight: 650; }
+  .zone-switch button[aria-current="true"] { background: var(--text); color: var(--night); border-color: var(--text); }
+  .assign { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
+  .assign li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 10px; align-items: center; }
+  .assign .who { color: var(--text); font-weight: 650; }
+  .assign .who small { display: block; color: var(--muted); font-weight: 400; font-size: 14px; }
+  .note { color: var(--muted); font-size: 15px; margin: 0; }
+  .no-strings { color: var(--muted); margin: 0; padding: 8px 0; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .live { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; margin: 0 -16px 10px; padding: 8px 16px 10px;
+          background: var(--night); box-shadow: 0 12px 14px -12px rgba(0, 0, 0, 0.6); }
+  .live .hero { max-width: 520px; margin: 0 auto; }
+  /* in the full-screen app the status bar overlaps the page; keep that strip solid behind it */
+  body::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: env(safe-area-inset-top, 0px);
+                 background: var(--night); z-index: 25; }
+  .live .wire { height: 30px; }
+  .hero.oneline { display: flex; gap: 0; }
+  .hero.oneline .wire { flex: none; }
+  /* Tablet (iPad portrait and up): the bulbs get the full width; Shows lays cards out in two columns; the
+     other screens stay a comfortable reading width; the bottom bar keeps its buttons together in the middle.
+     Wide screens (iPad Pro landscape, desktops) get three columns of cards. Narrower windows, such as iPad
+     Split View and Slide Over, use the phone layout. */
+  @media (min-width: 700px) {
+    .topbar, main { max-width: 980px; }
+    .live .hero, .live .live-label { max-width: 1200px; }
+    .live .no-strings { max-width: 980px; }
+    .view[data-view="now"], .view[data-view="create"], .view[data-view="setup"] { max-width: 600px; margin: 0 auto; }
+    .shows { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+    .shows .group { grid-column: 1 / -1; }
+    .tabs[role=tablist] { max-width: 600px; }
+    .bottom-nav { padding-left: calc((100vw - 600px) / 2); padding-right: calc((100vw - 600px) / 2); }
+  }
+  @media (min-width: 1150px) {
+    .topbar, main, .live .no-strings { max-width: 1200px; }
+    .shows { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .live-label { max-width: 520px; margin: 4px auto 0; display: flex; justify-content: space-between; gap: 12px;
+                font-size: 14px; color: var(--muted); }
+  .live-label #live-name { color: var(--text); font-weight: 650; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .live-label #live-state { flex: none; }
+  /* Strings read like wrapped text: every row runs left to right, as the real strings do, and an S-shaped
+     wire runs from the end of one string, below its bulbs, back to the start of the next (drawn by joins()). */
+  .hero .join { position: absolute; top: 3px; left: -10px; overflow: visible; pointer-events: none; }
+  .hero .join path { fill: none; stroke: var(--edge); stroke-width: 2; stroke-linecap: round; }
+  .hero { display: grid; gap: 14px; }
+  .live .bulb b { width: min(72%, 13px); box-shadow: 0 0 10px var(--c); }
+  .live .no-strings { max-width: 520px; margin: 0 auto; }
+  h1 { font-size: 34px; line-height: 1.1; font-weight: 800; letter-spacing: -0.01em; margin: 14px 0 4px; }
+  .status { color: var(--muted); margin: 0; }
+  .status strong { color: var(--text); font-weight: 600; }
+
+  .health { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; font-size: 15px; color: var(--muted); }
+  .health li { display: flex; gap: 8px; align-items: baseline; }
+  .health li::before { content: ""; flex: none; width: 9px; height: 9px; border-radius: 50%; background: #6fd08c;
+                       transform: translateY(-1px); }
+  .health .warn::before { background: var(--amber); }
+  .health .bad::before { background: var(--alert); }
+  .health .bad, .health .warn { color: var(--text); }
+  .health strong { color: var(--text); font-weight: 600; }
+
+  h2 { font-size: 21px; font-weight: 700; margin: 30px 0 12px; }
+
+  /* Power: three-way switch */
+  .power { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--panel);
+           border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 5px; gap: 5px; }
+  .power button { border: 0; background: transparent; border-radius: 17px; min-height: 52px;
+                  font-weight: 650; color: var(--muted); }
+  .power button[aria-pressed="true"] { background: var(--text); color: var(--night); }
+  .power button[data-mode="on"][aria-pressed="true"]  { background: var(--amber); }
+  .power button[data-mode="off"][aria-pressed="true"] { background: var(--alert); color: var(--text); }
+  .hint { color: var(--muted); font-size: 15px; margin: 8px 4px 0; min-height: 1.45em; }
+  .hint:empty { display: none; }
+
+  /* Speed */
+  .speed { background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 14px 16px 10px; }
+  .speed .read { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .speed .read strong { font-size: 22px; font-weight: 700; }
+  .speed .read span { color: var(--muted); font-size: 15px; }
+  .speed input { width: 100%; margin: 10px 0 2px; height: 36px; accent-color: var(--amber); }
+  .speed .ends { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; }
+
+  /* Shows */
+  .tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; padding: 5px; margin-bottom: 12px;
+          background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-lg); }
+  .tabs button { border: 0; background: transparent; border-radius: 17px; min-height: 46px; font-weight: 650; color: var(--muted);
+                 font-size: 15px; padding: 0 2px; }
+  .tabs.two button { font-size: 17px; }
+  .tabs button[aria-selected="true"] { background: var(--text); color: var(--night); }
+  .tabs .n { font-weight: 500; opacity: .7; }
+  /* Custom tab */
+  .editor { background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 16px;
+            display: grid; gap: 14px; margin-bottom: 14px; }
+  .editor h3 { margin: 0; font-size: 19px; }
+  .editor fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+  .editor legend { color: var(--muted); font-size: 15px; padding: 0; margin-bottom: 6px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 10px; padding-top: 6px; }
+  .sw { position: relative; }
+  .sw input[type=color] { width: 52px; height: 52px; padding: 0; border: 2px solid var(--edge); border-radius: 14px;
+                          background: none; cursor: pointer; }
+  .sw input[type=color]::-webkit-color-swatch-wrapper { padding: 3px; }
+  .sw input[type=color]::-webkit-color-swatch { border: 0; border-radius: 10px; }
+  .sw button { position: absolute; top: -7px; right: -7px; width: 24px; height: 24px; border-radius: 50%; border: 0;
+               background: var(--text); color: var(--night); font-size: 15px; line-height: 24px; padding: 0; font-weight: 700; }
+  .add { width: 52px; height: 52px; border-radius: 14px; border: 2px dashed var(--edge); background: none;
+         color: var(--muted); font-size: 26px; }
+  .row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 12px; }
+  select, input[type=text] { width: 100%; min-width: 0; background: var(--night); border: 1px solid var(--edge);
+         border-radius: var(--r-sm); padding: 10px; font-size: 17px; min-height: 48px; }
+  .editor input[type=range] { width: 100%; accent-color: var(--amber); height: 32px; }
+  .editor .note { color: var(--muted); font-size: 14px; margin: 0; }
+  .btns { display: flex; gap: 10px; }
+  .btns button { flex: 1 1 0; min-width: 0; }
+  .btn2 { min-height: 50px; border-radius: 17px; border: 1px solid var(--edge); background: transparent; font-weight: 700; }
+  .btn1 { min-height: 50px; border-radius: 17px; border: 0; background: var(--amber); color: var(--night); font-weight: 700; }
+  .tabs.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tabs button[aria-pressed="true"] { background: var(--text); color: var(--night); }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: step; }
+  .steps li { border: 1px solid var(--edge); border-radius: var(--r-sm); padding: 12px; display: grid; gap: 10px;
+              position: relative; counter-increment: step; }
+  .steps .top { display: flex; gap: 10px; align-items: center; }
+  .steps .top::before { content: counter(step); font-weight: 800; color: var(--amber); min-width: 1ch; }
+  .steps .rm { border: 0; background: none; color: var(--muted); font-size: 22px; min-width: 40px; min-height: 40px; }
+  .steps label { font-size: 14px; }
+  .shows .group h3 { margin: 14px 4px 0; font-size: 15px; font-weight: 700; color: var(--muted); }
+  .shows .group:first-child h3, .shows li[hidden] + .group h3 { margin-top: 0; }
+  .help-link { display: inline-block; margin-top: 10px; color: var(--muted); font-size: 15px; }
+  .switch { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font-size: 15px; min-height: 40px; padding: 0 4px; cursor: pointer; }
+  .switch input { appearance: none; -webkit-appearance: none; margin: 0; width: 44px; height: 26px; border-radius: 13px;
+                  background: var(--edge); position: relative; transition: background .2s; flex: none; cursor: pointer; }
+  .switch input::before { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%;
+                          background: var(--text); transition: transform .2s; }
+  .switch input:checked { background: var(--amber); }
+  .switch input:checked::before { transform: translateX(18px); }
+  .switch input:checked + span { color: var(--text); }
+  @media (prefers-reduced-motion: reduce) { .switch input, .switch input::before { transition: none; } }
+  .card-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+  .card-actions button { border: 0; background: none; color: var(--muted); font-size: 15px; padding: 8px 10px; min-height: 40px; }
+  .empty { color: var(--muted); margin: 4px 4px 0; }
+  .wide { width: 100%; margin-top: 12px; }
+
+  .shows { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .show { width: 100%; text-align: left; border: 1px solid var(--edge); background: var(--panel);
+          border-radius: var(--r-sm); padding: 14px 14px 12px; display: grid; gap: 6px; cursor: pointer; }
+  .show .name { font-weight: 700; font-size: 18px; display: flex; justify-content: space-between; gap: 8px; }
+  .show .desc { color: var(--muted); font-size: 15px; }
+  a.more { display: inline-block; margin: 2px 16px 10px; color: var(--amber); font-size: 15px; }
+  .now-card a.more { margin: 6px 0 0; }
+  .show[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset, 0 0 22px -8px var(--amber); }
+  .show[aria-pressed="true"] .name::after { content: "Playing"; color: var(--amber); font-size: 14px; font-weight: 650; }
+  .show:active { transform: scale(0.99); }
+  .card { border: 1px solid var(--edge); background: var(--panel); border-radius: var(--r-sm); overflow: hidden; }
+  .card .show { border: 0; border-radius: 0; padding-bottom: 6px; }
+  .card .show[aria-pressed="true"] { box-shadow: none; }
+  .card:has(.show[aria-pressed="true"]) { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset, 0 0 22px -8px var(--amber); }
+  .card .switch { padding: 2px 14px 10px; min-height: 44px; width: 100%; }
+
+  /* Schedule */
+  .sched { background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 16px; }
+  .times { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .times .col { display: grid; gap: 12px; align-content: start; min-width: 0; }
+  .sched select, .sched input[type=text] { display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: 48px;
+               background: var(--night); color: var(--text); border: 1px solid var(--edge); border-radius: var(--r-sm);
+               padding: 8px 10px; font: inherit; font-size: 17px; }
+  .loc { margin-top: 14px; display: grid; gap: 12px; }
+  .loc .note { margin: 0; }
+  .loc .exact summary { color: var(--muted); font-size: 15px; cursor: pointer; }
+  .loc .exact[open] { display: grid; gap: 12px; }
+  label { display: grid; gap: 6px; color: var(--muted); font-size: 15px; }
+  label { min-width: 0; }
+  /* iOS gives time inputs a wide built-in minimum; appearance:none lets them shrink to fit the column */
+  input[type=time] { -webkit-appearance: none; appearance: none; display: block; box-sizing: border-box;
+                     background: var(--night); border: 1px solid var(--edge); border-radius: var(--r-sm);
+                     padding: 8px 10px; font-size: 18px; font-weight: 650; min-height: 48px;
+                     width: 100%; min-width: 0; max-width: 100%; text-align: left; }
+  input[type=time]::-webkit-date-and-time-value { text-align: left; }
+  .save { margin-top: 14px; width: 100%; min-height: 52px; border: 0; border-radius: 17px;
+          background: var(--text); color: var(--night); font-weight: 700; }
+  .save:disabled { opacity: 0.45; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); transform: translate(-50%, 0) scale(.9); opacity: 0;
+           pointer-events: none; z-index: 30;
+           background: var(--text); color: var(--night); padding: 12px 18px; border-radius: 999px; font-weight: 650;
+           transition: transform .25s ease, opacity .25s ease; max-width: calc(100% - 32px); }
+  .toast.show-toast { transform: translate(-50%, 0); opacity: 1; }
+  .toast.err { background: var(--alert); color: var(--text); }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } .show:active { transform: none; } }
+
+  /* Each bulb shows exactly one colour: glows are drawn first, then every bulb's solid body on top, so a
+     neighbour's glow can never tint part of a bulb (real bulbs can't show two colours at once). */
+  .wire { isolation: isolate; }
+  .bulb b { position: relative; }
+  .bulb b::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: inherit; z-index: 2; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand"><img src="/logo.svg" alt="" width="34" height="34"><span>String Theory</span></div>
+  <nav class="zone-switch" id="zone-switch" aria-label="Zones" hidden></nav>
+</div>
+<!-- The live bulbs: stay at the top of the screen on every screen while you scroll -->
+<div class="live"><div class="hero" id="hero" aria-hidden="true"></div>
+  <p class="live-label"><span id="live-name"></span><span id="live-state"></span></p></div>
+<main>
+  <!-- NOW: what's on, and the everyday controls -->
+  <section class="view" data-view="now" aria-label="Now">
+    <div class="title-row">
+      <h1 id="lights-name">Your lights</h1>
+      <button type="button" class="rename" id="rename" aria-label="Rename these lights">Rename</button>
+    </div>
+    <form class="rename-form" id="rename-form" hidden>
+      <label for="name-input" class="sr">Name for these lights</label>
+      <input type="text" id="name-input" maxlength="40" required>
+      <button type="submit" class="btn1">Save</button>
+      <button type="button" class="btn2" id="rename-cancel">Cancel</button>
+    </form>
+    <p class="status" id="status">Connecting to the Pi…</p>
+    <ul class="health" id="health" aria-label="What the strings are doing"></ul>
+
+    <h2>Playing</h2>
+    <div class="now-card">
+      <span class="name" id="now-name"></span>
+      <span class="desc" id="now-desc"></span>
+      <button type="button" class="btn2" id="change-show">Change show</button>
+    </div>
+
+    <h2 id="power-h">Power</h2>
+    <div class="power" role="group" aria-labelledby="power-h">
+      <button data-mode="on" aria-pressed="false">On</button>
+      <button data-mode="auto" aria-pressed="false">Schedule</button>
+      <button data-mode="off" aria-pressed="false">Off</button>
+    </div>
+    <p class="hint" id="power-hint"></p>
+
+  <div id="speed-sec" hidden>
+    <h2 id="speed-h">Speed</h2>
+    <div class="speed">
+      <div class="read"><strong id="speed-val">Normal</strong><span id="speed-for"></span></div>
+      <input type="range" id="speed" min="0" max="0" step="1" aria-labelledby="speed-h" aria-describedby="speed-val">
+      <div class="ends" aria-hidden="true"><span>Slower</span><span>Faster</span></div>
+    </div>
+    <p class="hint" id="speed-hint"></p>
+  </div>
+
+    <h2 id="bright-h">Brightness</h2>
+    <div class="speed">
+      <div class="read"><strong id="bright-val">100%</strong><span>Every show in this zone</span></div>
+      <input type="range" id="bright" min="0" max="0" step="1" aria-labelledby="bright-h" aria-describedby="bright-val">
+      <div class="ends" aria-hidden="true"><span>Dimmer</span><span>Brighter</span></div>
+    </div>
+
+  </section>
+
+  <!-- SHOWS: everything you can play -->
+  <section class="view" data-view="shows" aria-labelledby="shows-h" hidden>
+    <h1 class="view-title" id="shows-h">Shows</h1>
+    <div class="tabs" role="tablist" aria-labelledby="shows-h">
+      <button role="tab" data-kind="still" aria-selected="false" aria-controls="shows">Still</button>
+      <button role="tab" data-kind="moving" aria-selected="false" aria-controls="shows">Moving</button>
+      <button role="tab" data-kind="playlist" aria-selected="false" aria-controls="shows">Playlists</button>
+      <button role="tab" data-kind="custom" aria-selected="false" aria-controls="shows">Yours</button>
+      <button role="tab" data-kind="test" aria-selected="false" aria-controls="shows">Tests</button>
+    </div>
+    <ul class="shows" id="shows" role="tabpanel"></ul>
+    <button type="button" class="btn2 wide" id="pl-new" hidden>Build your own playlist</button>
+    <p class="empty" id="custom-empty" hidden>Patterns you make on Create appear here.</p>
+  </section>
+
+  <!-- CREATE: make patterns and playlists -->
+  <section class="view" data-view="create" aria-labelledby="create-h" hidden>
+    <h1 class="view-title" id="create-h">Create</h1>
+    <div class="tabs two" id="ed-switch" role="group" aria-label="What to make">
+      <button type="button" data-ed="pattern" aria-pressed="true">New pattern</button>
+      <button type="button" data-ed="playlist" aria-pressed="false">New playlist</button>
+    </div>
+    <form class="editor" id="pl-editor" hidden>
+      <h3 id="pl-title">Build a playlist</h3>
+      <p class="note">Each theme shows for its time, then moves to the next with its transition. After the last one it goes back to the first.</p>
+      <ol class="steps" id="pl-steps"></ol>
+      <button type="button" class="btn2" id="pl-add">Add a theme</button>
+      <div class="btns">
+        <button type="button" class="btn2" id="pl-try">Try it</button>
+        <button type="button" class="btn2" id="pl-cancel" hidden>Stop editing</button>
+      </div>
+      <label>Name <input type="text" id="pl-name" maxlength="40" placeholder="e.g. Christmas Eve"></label>
+      <button type="submit" class="btn1" id="pl-save">Save playlist</button>
+    </form>
+    <form class="editor" id="editor" hidden>
+      <h3 id="ed-title">Make your own</h3>
+      <div class="wire" id="ed-preview" aria-hidden="true"></div>
+      <fieldset>
+        <legend>Colours, in order</legend>
+        <div class="swatches" id="swatches"></div>
+      </fieldset>
+      <div class="row2">
+        <label>Bulbs each
+          <select id="ed-width"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+        </label>
+        <label>Effect
+          <select id="ed-effect">
+            <optgroup label="Run by the Pi">
+              <option value="still">Still</option>
+              <option value="chase">Chase along</option>
+              <option value="converge">Flow toward the join</option>
+            </optgroup>
+            <optgroup label="Built into the controllers" id="ed-builtins"></optgroup>
+          </select>
+        </label>
+      </div>
+      <div id="ed-bi" hidden>
+        <label>Effect speed <input type="range" id="ed-speed" min="1" max="100" value="50"></label>
+        <label>What does this effect look like?
+          <input type="text" id="ed-ename" maxlength="30" placeholder="Name it once you've seen it, e.g. Slow fade">
+        </label>
+        <p class="note">Built-in effects run on the controllers themselves, so they fade smoothly, but the preview above only shows the colours. Tap Try it to see the effect. Each string runs it on its own clock, so the two can drift apart a little.</p>
+      </div>
+      <div class="btns">
+        <button type="button" class="btn2" id="ed-try">Try it</button>
+        <button type="button" class="btn2" id="ed-cancel" hidden>Stop editing</button>
+      </div>
+      <label>Name <input type="text" id="ed-name" maxlength="40" placeholder="e.g. Grinch"></label>
+      <button type="submit" class="btn1" id="ed-save">Save as a show</button>
+    </form>
+  </section>
+
+  <!-- SETUP: schedule, zones, help -->
+  <section class="view" data-view="setup" aria-labelledby="setup-h" hidden>
+    <h1 class="view-title" id="setup-h">Setup</h1>
+    <h2 id="sched-h">Schedule <span class="for" id="sched-for"></span></h2>
+    <form class="sched" id="sched">
+      <div class="times">
+        <div class="col">
+          <label>Turn on
+            <select id="on-kind"><option value="time">At a time</option><option value="sunset">Around sunset</option><option value="sunrise">Around sunrise</option></select></label>
+          <label data-for="on-time">Time <input type="time" id="on"></label>
+          <label data-for="on-sun">When <select id="on-offset"></select></label>
+        </div>
+        <div class="col">
+          <label>Turn off
+            <select id="off-kind"><option value="time">At a time</option><option value="after">After a while</option><option value="sunrise">Around sunrise</option><option value="sunset">Around sunset</option></select></label>
+          <label data-for="off-time">Time <input type="time" id="off"></label>
+          <label data-for="off-after">For <select id="off-after"></select></label>
+          <label data-for="off-sun">When <select id="off-offset"></select></label>
+        </div>
+      </div>
+      <div class="loc" id="loc" hidden>
+        <p class="note" id="loc-now"></p>
+        <button type="button" class="btn2 wide" id="here">Locate me</button>
+        <details class="exact">
+          <summary>Enter exact coordinates</summary>
+          <div class="times">
+            <label>Latitude <input type="text" inputmode="decimal" id="lat" placeholder="43.65" autocomplete="off"></label>
+            <label>Longitude <input type="text" inputmode="decimal" id="lon" placeholder="-79.38" autocomplete="off"></label>
+          </div>
+          <button type="button" class="btn2 wide" id="use-coords">Use these coordinates</button>
+        </details>
+      </div>
+      <p class="hint" id="sched-now"></p>
+      <button class="save" type="submit" id="save" disabled>Save schedule</button>
+    </form>
+
+    <h2 id="zones-h">Zones</h2>
+    <div class="sched">
+      <p class="note">A zone is a group of strings with its own name, show, speed, power and schedule. Each string belongs to one zone. Saved patterns and playlists work in every zone.</p>
+      <ul class="assign" id="assign"></ul>
+      <form class="rename-form" id="zone-add">
+        <label for="zone-add-name" class="sr">New zone name</label>
+        <input type="text" id="zone-add-name" maxlength="40" placeholder="New zone, e.g. Garage" required>
+        <button type="submit" class="btn1">Add zone</button>
+      </form>
+      <button type="button" class="btn2 wide" id="zone-delete">Delete this zone</button>
+    </div>
+
+    <h2>Help</h2>
+    <a class="card-link" href="/help">Help, and every show from A to Z</a>
+  </section>
+  <p class="credit">Made by <a href="https://chadworthman.com/">Chad Worthman</a></p>
+</main>
+
+<nav class="bottom-nav" id="bottom-nav" aria-label="Screens">
+    <button type="button" data-view="now" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2v.5h5v-.5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3Z"/><path d="M9.5 19h5M10.5 21.5h3"/></svg>Now</button>
+    <button type="button" data-view="shows" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.8"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.8"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.8"/></svg>Shows</button>
+    <button type="button" data-view="create" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.7-.8 1.7-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.6 1.7-1.6h2a4.1 4.1 0 0 0 4.1-4.1C20.5 6.9 16.7 3.5 12 3.5Z"/><circle cx="7.6" cy="11.5" r="1.1"/><circle cx="10" cy="7.6" r="1.1"/><circle cx="14.6" cy="7.6" r="1.1"/></svg>Create</button>
+    <button type="button" data-view="setup" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>Setup</button>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let state = null, savedSched = null, tab = null;
+let zone = localStorage.getItem('zone');           // which zone this phone is looking at
+// Screens (the bottom bar): Now, Shows, Create, Setup. The last one used on this phone comes back.
+const VIEWS = ['now', 'shows', 'create', 'setup'];
+let view = VIEWS.includes(localStorage.getItem('view')) ? localStorage.getItem('view') : 'now';
+function showView(v, keepScroll) {
+  if (v !== view && !keepScroll) window.scrollTo(0, 0);
+  view = v; localStorage.setItem('view', v);
+  document.querySelectorAll('.view').forEach(el => el.hidden = el.dataset.view !== v);
+  document.querySelectorAll('#bottom-nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === v ? 'page' : 'false'));
+  if (state) tick();
+}
+function showTab() {
+  localStorage.setItem('tab', tab);              // come back to this tab next time
+  document.querySelectorAll('.tabs button[data-kind]').forEach(b => b.setAttribute('aria-selected', b.dataset.kind === tab));
+  document.querySelectorAll('#shows li').forEach(li => li.hidden = li.dataset.kind !== tab);
+  $('#editor').hidden = edMode !== 'pattern';
+  $('#pl-editor').hidden = edMode !== 'playlist';
+  document.querySelectorAll('#ed-switch button').forEach(b => b.setAttribute('aria-pressed', b.dataset.ed === edMode));
+  $('#custom-empty').hidden = tab !== 'custom' || !!state?.shows.some(x => x.kind === 'custom');
+  $('#pl-new').hidden = tab !== 'playlist';
+}
+let previews = null, clockOffset = 0, offsets = [0];          // clockOffset: Pi clock minus this phone's clock, seconds
+const still = matchMedia('(prefers-reduced-motion: reduce)');
+const pageStart = Date.now() / 1000;
+const esc = v => String(v).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+function loadPreviews() { return fetch('/api/previews?zone=' + encodeURIComponent(zone || '')).then(r => r.json()).then(p => { previews = p; tick(); }).catch(() => {}); }
+
+function wire(el, colors, dark) {
+  el.classList.toggle('dark', !!dark);
+  el.innerHTML = colors.map(c => `<span class="bulb" style="--c:${c}"><i></i><b></b></span>`).join('');
+}
+
+// Which frame of a show is showing `t` seconds after it started: [change key, 'rrggbb' per bulb].
+function frameAt(id, t, quick) {
+  const tl = previews?.[id]; if (!tl) return null;
+  if (tl.items) { const f = playlistFrame(quick ? quickOf(tl) : tl, t); return f && [f, f]; }
+  const c = tl.period ? ((t % tl.period) + tl.period) % tl.period : 0, f = tl.frames;
+  let lo = 0, hi = f.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (f[mid][0] <= c) lo = mid; else hi = mid - 1; }
+  return [lo, f[lo][1]];
+}
+// Playlists arrive as a recipe; build each frame from the themes' own previews (same maths as build_playlist).
+const lin = v => (v / 255) ** 2.2, unlin = v => Math.round(255 * v ** (1 / 2.2));
+function fadeHex(a, b, f) {
+  let out = '';
+  for (let i = 0; i < a.length; i += 2) {
+    const x = lin(parseInt(a.substr(i, 2), 16)), y = lin(parseInt(b.substr(i, 2), 16));
+    out += unlin(x + (y - x) * f).toString(16).padStart(2, '0');
+  }
+  return out;
+}
+// Show cards play playlists sped up, so you don't wait minutes to see the next theme: each theme for
+// at most 5 s, chases in about 3 s, fades in 2 s. (The bulbs at the top still mirror the real lights.)
+function quickOf(tl) {
+  if (tl._quick) return tl._quick;
+  const items = tl.items.map(it => {
+    const tdur = it.transition === 'chase' ? Math.min(it.tdur, 3.2) : it.transition === 'fade' ? Math.min(it.tdur, 2) : 0;
+    return {...it, hold: Math.min(it.hold, 5), tdur, step: it.transition === 'chase' ? tdur / (state?.total || 48) : 0.25};
+  });
+  return tl._quick = {items, period: items.reduce((a, it) => a + it.hold + it.tdur, 0), tstep: tl.tstep};
+}
+function playlistFrame(tl, t) {
+  const its = tl.items, n = its.length;
+  let c = ((t % tl.period) + tl.period) % tl.period;
+  for (let i = 0; i < n; i++) {
+    const it = its[i], into = its[(i - 1 + n) % n].tdur, nxt = its[(i + 1) % n];
+    if (c < it.hold) return frameAt(it.show, c + into)?.[1];
+    c -= it.hold;
+    if (it.tdur && c < it.tdur) {
+      const old = frameAt(it.show, c + into + it.hold)?.[1], neu = frameAt(nxt.show, c)?.[1];
+      if (!old || !neu) return old || neu;
+      const step = it.step || tl.tstep, k = Math.floor(c / step) + 1;
+      if (it.transition === 'chase') return neu.slice(0, k * 6) + old.slice(k * 6);
+      return fadeHex(old, neu, Math.min(1, k * step / it.tdur));
+    }
+    c -= it.tdur;
+  }
+  return frameAt(its[0].show, 0)?.[1];
+}
+function paint(bulbs, hex, from = 0) {        // colour bulbs from a 'rrggbb…' string starting at bulb `from`
+  bulbs.forEach((b, i) => {
+    const c = hex.substr((from + i) * 6, 6);
+    b.style.setProperty('--c', c === '000000' ? '#303846' : '#' + c);   // a dark bulb looks unlit, not black
+  });
+}
+function speedOf(id) { return state?.shows.find(x => x.id === id)?.speed ?? 1; }
+function liveT() { return (Date.now() / 1000 + clockOffset - (state?.started ?? 0)) * speedOf(state?.show); }
+function tick() {
+  if (!previews || !state) return;
+  const hero = $('#hero');
+  const live = frameAt(state.show, liveT());
+  if (live && hero.dataset.f !== `${state.show}:${live[0]}`) {
+    hero.dataset.f = `${state.show}:${live[0]}`;
+    hero.querySelectorAll('.wire').forEach((w, i) => paint([...w.querySelectorAll('.bulb')], live[1], offsets[i]));
+  }
+  if (view === 'create') paintEditor();
+  if (view === 'shows') document.querySelectorAll('.show').forEach(b => {   // only animate what's on screen
+    if (b.parentElement.hidden) return;
+    const id = b.dataset.play || b.dataset.id;
+    // The playing show's card keeps time with the real lights; the rest loop from when the page opened.
+    const quick = !!previews[id]?.items;          // playlists: sped-up preview on the page's own clock
+    const fr = frameAt(id, id === state.show && !quick ? liveT() : (still.matches ? 0 : (Date.now() / 1000 - pageStart) * speedOf(id)), quick);
+    if (fr && b.dataset.f !== String(fr[0])) { b.dataset.f = fr[0]; paint([...b.querySelectorAll('.bulb')], fr[1]); }
+  });
+}
+loadPreviews();
+setInterval(() => document.hidden || still.matches || tick(), 50);
+
+function fmt(t) {               // "16:00" -> "4:00 pm", "00:00" -> "midnight"
+  if (!t) return 'later';
+  if (t === '00:00') return 'midnight';
+  if (t === '12:00') return 'noon';
+  let [h, m] = t.split(':').map(Number);
+  return `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`;
+}
+function toast(msg, err) {
+  const t = $('#toast'); t.textContent = msg; t.classList.toggle('err', !!err);
+  t.classList.add('show-toast'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show-toast'), 2600);
+}
+
+function render(s) {
+  if (state && state.show !== s.show) $('#hero').dataset.f = '';
+  const zoneChanged = s.zone !== zone || (state && state.zone !== s.zone);
+  zone = s.zone; localStorage.setItem('zone', zone);
+  if (zoneChanged && state) { tab = null; previews = null; loadPreviews(); }
+  state = s; clockOffset = s.now - Date.now() / 1000;
+  renderZones(s);
+  $('#lights-name').textContent = s.lights_name;
+  const cur = s.shows.find(x => x.id === s.show) || s.shows[0];
+  const hero = $('#hero');
+  offsets = s.strings.map((_, i) => s.strings.slice(0, i).reduce((a, x) => a + x.bulbs, 0));
+  // All the strings on one continuous row when there's room (about 14px a bulb), else one row per string.
+  const oneLine = s.total > 0 && hero.parentElement.clientWidth / s.total >= 14;
+  const heroSig = s.strings.map(x => x.name + x.bulbs).join('|') + (oneLine ? '|one' : '|rows');
+  if (hero.dataset.sig !== heroSig) {
+    hero.dataset.sig = heroSig;
+    hero.classList.toggle('oneline', oneLine);
+    hero.innerHTML = s.strings.map(() => '<div class="wire"></div>').join('');
+    const most = Math.max(...s.strings.map(x => x.bulbs));
+    hero.querySelectorAll('.wire').forEach((w, i) => {
+      w.style.width = oneLine ? `${100 * s.strings[i].bulbs / s.total}%`  // end to end, as on the porch
+                              : `${100 * s.strings[i].bulbs / most}%`;    // rows as long as the strings really are
+      wire(w, cur.preview.slice(offsets[i], offsets[i] + s.strings[i].bulbs));
+    });
+    hero.dataset.f = '';
+    joins();
+  }
+  hero.querySelectorAll('.wire').forEach(w => w.classList.toggle('dark', !s.lit));
+
+  const {on, off} = s.schedule;
+  let st;
+  if (s.mode === 'auto') st = s.lit ? `<strong>On</strong> until ${fmt(off)}.` : `<strong>Off</strong> until ${fmt(on)}.`;
+  else st = `<strong>${s.lit ? 'On' : 'Off'}</strong>, held until ${fmt(s.override_until)}.`;
+  $('#status').innerHTML = `${st} Showing ${cur.name.toLowerCase().replace(/^\w/, c => c.toUpperCase())}.`;
+
+  const h = s.health;
+  $('#health').innerHTML = !h.engine
+    ? `<li class="bad">The light show program on the Pi isn't running. Restart it with <strong>sudo systemctl restart string-theory</strong>.</li>`
+    : h.strings.map(x => `<li class="${x.level}"><span><strong>${x.label}:</strong> ${x.text}${x.since ? ` since ${fmt(x.since)}` : ''}.</span></li>`).join('');
+
+  document.querySelectorAll('.power button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === s.mode));
+  $('#power-hint').textContent = s.mode === 'auto'
+    ? `Lights follow the schedule: ${fmt(on)} to ${fmt(off)}.`
+    : `Staying ${s.mode} until ${fmt(s.override_until)}, then back to the schedule.`;
+
+  const ul = $('#shows');
+  const sig = s.shows.map(x => x.id + x.name + x.desc + x.preview.join('')).join('|');
+  if (ul.dataset.sig !== sig) {
+    ul.dataset.sig = sig;
+    const seen = {};                            // a heading wherever the group changes within a tab
+    ul.innerHTML = s.shows.map(x => {
+      const head = x.group && seen[x.kind] !== x.group && x.kind !== 'custom' && x.kind !== 'draft' && x.kind !== 'test'
+        ? `<li class="group" data-kind="${x.kind}"><h3>${esc(x.group)}</h3></li>` : '';
+      seen[x.kind] = x.group;
+      return head + `
+      <li data-kind="${x.kind}">${x.moving_id ? '<div class="card">' : ''}<button class="show" data-id="${x.id}"${x.moving_id ? ` data-moving="${x.moving_id}"` : ''} aria-pressed="false">
+        <span class="name">${esc(x.name)}</span>
+        <span class="wire" aria-hidden="true"></span>
+        <span class="desc">${esc(x.desc)}</span>
+      </button>${x.link ? `<a class="more" href="${esc(x.link.url)}" title="${esc(x.link.title)}" target="_blank" rel="noopener">${esc(x.link.text)}</a>` : ''}${x.spec && x.kind !== 'draft' ? `<div class="card-actions">
+        <button type="button" data-edit="${x.id}">Edit</button><button type="button" data-del="${x.id}">Delete</button></div>`
+        : x.playlist ? `<div class="card-actions"><button type="button" data-copy="${x.id}">Edit a copy</button></div>`
+        : x.moving_id ? `<label class="switch"><input type="checkbox" role="switch" data-pair="${x.id}"><span>Animate</span></label></div>` : ''}</li>`;
+    }).join('');
+    ul.querySelectorAll('.show').forEach((b, i) => wire(b.querySelector('.wire'), s.shows[i].preview));
+  }
+  ul.querySelectorAll('.show').forEach(b => {
+    const m = b.dataset.moving;
+    if (m) {                                    // Animate switch: on only while this card plays its animated version
+      const box = ul.querySelector(`input[data-pair="${b.dataset.id}"]`);
+      box.checked = s.show === m;
+      setPlay(b, box.checked);
+    }
+    b.setAttribute('aria-pressed', b.dataset.id === s.show || (!!m && m === s.show));
+  });
+  if (!tab && location.hash === '#newplaylist') { tab = 'custom'; edMode = 'playlist'; showView('create'); }
+  // Start on the tab named in the link (#still etc.), else the last tab chosen on this phone, else Still.
+  const TABS = ['still', 'moving', 'playlist', 'custom', 'test'];
+  if (!tab && TABS.includes(location.hash.slice(1))) showView('shows');
+  if (!tab && VIEWS.includes(location.hash.slice(1))) showView(location.hash.slice(1));
+  if (!tab) tab = TABS.find(k => '#' + k === location.hash)
+                 || (TABS.includes(localStorage.getItem('tab')) ? localStorage.getItem('tab') : 'still');
+  // The Now screen's "Playing" card and the schedule heading
+  $('#now-name').textContent = cur.name; $('#now-desc').textContent = cur.desc;
+  $('#now-desc').insertAdjacentHTML('beforeend', cur.link ? ` <a class="more" href="${esc(cur.link.url)}" title="${esc(cur.link.title)}" target="_blank" rel="noopener">${esc(cur.link.text)}</a>` : '');
+  $('#live-name').textContent = cur.name;                     // the bulb bar says what it's showing
+  $('#live-state').textContent = !s.strings.length ? '' : s.lit ? 'On' : 'Off';
+  $('#sched-for').textContent = s.zones.length > 1 ? `for ${s.lights_name}` : '';
+  renderEffects(s);
+  if (!$('#pl-steps').children.length) renderPlaylist();
+  showTab();
+
+  // Speed: only for shows that move, and only up to what the strings can keep up with.
+  const steps = s.speeds.filter(v => v <= cur.max_speed), sl = $('#speed');
+  $('#speed-sec').hidden = !cur.animated;
+  $('#speed-for').textContent = cur.name;
+  sl.max = steps.length - 1;
+  if (document.activeElement !== sl) { sl.value = steps.indexOf(cur.speed); showSpeed(); }
+  const bl = $('#bright'); bl.max = s.brightnesses.length - 1;
+  if (document.activeElement !== bl) { bl.value = Math.max(0, s.brightnesses.indexOf(s.brightness)); showBright(); }
+
+  tick();
+  const rule = JSON.stringify(s.schedule.rule);          // refill only when the saved rule changes, not on Locate me
+  if (savedSched !== rule) { savedSched = rule; fillSched(s); }
+  $('#loc-now').textContent = s.location
+    ? `Sunset and sunrise are worked out for ${s.location.name}. It stays on your String Theory.`
+    : "Sunset and sunrise need to know roughly where you are. Locate me uses this device's location, or its time zone.";
+  $('#sched-now').textContent = `${s.schedule.text}. ${s.lit && s.mode === 'auto' ? 'On now until' : 'Next:'} `
+    + (s.lit && s.mode === 'auto' ? `${fmt(off)}.` : `${fmt(on)} to ${fmt(off)}.`);
+}
+
+const SPEED_NAMES = {0.25: 'Quarter speed', 0.5: 'Half speed', 0.75: '¾ speed', 1: 'Normal', 2: 'Double speed', 3: 'Triple speed'};
+function speedLabel(v) { return SPEED_NAMES[v] || `${v}× speed`; }
+function speedSteps() { const cur = state.shows.find(x => x.id === state.show); return state.speeds.filter(v => v <= cur.max_speed); }
+function showSpeed() {
+  const steps = speedSteps(), v = steps[+$('#speed').value] ?? 1;
+  $('#speed-val').textContent = speedLabel(v);
+  $('#speed').setAttribute('aria-valuetext', speedLabel(v));
+  $('#speed-hint').textContent = v === steps[steps.length - 1] && steps.length > 1
+    ? "That's the top speed for this show. Any faster and the lights start skipping bulbs." : '';
+}
+// Brightness: the engine scales every bulb's colour; the live bulbs at the top dim to match.
+const brightLabel = v => `${Math.round(v * 100)}%`;
+function showBright() {
+  const v = state.brightnesses[+$('#bright').value] ?? 1;
+  $('#bright-val').textContent = brightLabel(v); $('#bright').setAttribute('aria-valuetext', brightLabel(v));
+  $('#hero').style.setProperty('--dim', (0.35 + 0.65 * v).toFixed(2));
+}
+$('#bright').addEventListener('input', showBright);
+$('#bright').addEventListener('change', async () => {
+  const v = state.brightnesses[+$('#bright').value];
+  if (await api('/api/brightness', {brightness: v})) toast(`Brightness: ${brightLabel(v)}`);
+});
+$('#speed').addEventListener('input', showSpeed);
+$('#speed').addEventListener('change', async () => {
+  const v = speedSteps()[+$('#speed').value];
+  if (await api('/api/speed', {show: state.show, speed: v})) toast(`Speed: ${speedLabel(v).toLowerCase()}`);
+});
+
+// ---- Custom tab: playlist builder ----
+let edMode = 'pattern';
+let pl = {id: null, name: '', items: [{show: 'classic', hold: 120, transition: 'chase'}, {show: 'candycane', hold: 120, transition: 'fade'}]};
+const HOLDS = [[15, '15 sec'], [30, '30 sec'], [60, '1 min'], [120, '2 min'], [300, '5 min'],
+               [600, '10 min'], [900, '15 min'], [1800, '30 min']];
+const TRANS = [['chase', 'Chase in'], ['fade', 'Fade'], ['cut', 'Quick change']];
+function themeOptions(sel) {
+  const kinds = {still: 'Still', moving: 'Moving', custom: 'Your shows'}, groups = {};
+  state.playable.forEach(p => {
+    const k = state.shows.find(x => x.id === p.id)?.kind || 'still';
+    (groups[k] ??= []).push(`<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${esc(p.name)}</option>`);
+  });
+  return Object.entries(kinds).filter(([k]) => groups[k]).map(([k, label]) => `<optgroup label="${label}">${groups[k].join('')}</optgroup>`).join('');
+}
+function renderPlaylist() {
+  if (!state) return;
+  const last = pl.items.length - 1;
+  $('#pl-steps').innerHTML = pl.items.map((it, i) => `<li data-i="${i}">
+      <div class="top"><select class="pl-show" aria-label="Theme ${i + 1}">${themeOptions(it.show)}</select>
+        ${pl.items.length > 1 ? `<button type="button" class="rm" data-rm="${i}" aria-label="Remove theme ${i + 1}">×</button>` : ''}</div>
+      <div class="row2">
+        <label>Show for <select class="pl-hold">${HOLDS.map(([v, l]) => `<option value="${v}"${v === it.hold ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+        <label>${i === last ? 'Then, back to the first' : 'Then'} <select class="pl-trans">${TRANS.map(([v, l]) => `<option value="${v}"${v === it.transition ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+      </div></li>`).join('');
+  $('#pl-add').hidden = pl.items.length >= 20;
+  $('#pl-name').value = pl.name;
+  $('#pl-title').textContent = pl.id ? `Editing ${pl.name}` : 'Build a playlist';
+  $('#pl-save').textContent = pl.id ? 'Save changes' : 'Save playlist';
+  $('#pl-cancel').hidden = !pl.id;
+}
+$('#pl-new').addEventListener('click', () => { edMode = 'playlist'; renderPlaylist(); showTab(); showView('create'); });
+$('#bottom-nav').addEventListener('click', e => { const b = e.target.closest('[data-view]'); if (b) showView(b.dataset.view); });
+$('#change-show').addEventListener('click', () => showView('shows'));
+$('#ed-switch').addEventListener('click', e => {
+  const b = e.target.closest('[data-ed]'); if (!b) return;
+  edMode = b.dataset.ed; if (edMode === 'playlist') renderPlaylist(); showTab();
+});
+$('#pl-steps').addEventListener('change', e => {
+  const li = e.target.closest('li'), it = pl.items[+li.dataset.i];
+  if (e.target.matches('.pl-show')) it.show = e.target.value;
+  if (e.target.matches('.pl-hold')) it.hold = +e.target.value;
+  if (e.target.matches('.pl-trans')) it.transition = e.target.value;
+});
+$('#pl-steps').addEventListener('click', e => {
+  const rm = e.target.closest('[data-rm]'); if (!rm) return;
+  pl.items.splice(+rm.dataset.rm, 1); renderPlaylist();
+});
+$('#pl-add').addEventListener('click', () => {
+  const prev = pl.items[pl.items.length - 1];
+  pl.items.push({show: prev?.show || 'classic', hold: prev?.hold || 120, transition: prev?.transition || 'chase'});
+  renderPlaylist();
+  $('#pl-steps').lastElementChild.querySelector('select').focus();
+});
+$('#pl-name').addEventListener('input', e => pl.name = e.target.value);
+$('#pl-try').addEventListener('click', async () => {
+  if (await api('/api/custom', {id: 'try', effect: 'playlist', items: pl.items, play: true})) { toast('Trying the playlist on the lights'); loadPreviews(); }
+});
+$('#pl-cancel').addEventListener('click', () => { pl = {...pl, id: null, name: ''}; renderPlaylist(); });
+$('#pl-editor').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!pl.name.trim()) { toast('Give the playlist a name first.', true); $('#pl-name').focus(); return; }
+  const editing = pl.id;
+  const s = await api('/api/custom', {id: editing ? editing.slice(7) : null, name: pl.name, effect: 'playlist', items: pl.items, play: true});
+  if (s) { toast(editing ? `Saved ${pl.name}` : `Saved and playing ${pl.name}`); pl = {...pl, id: null, name: ''}; renderPlaylist(); loadPreviews(); tab = 'playlist'; showTab(); showView('shows'); }
+});
+
+// ---- Custom tab: colour pattern + effect editor ----
+let ed = {id: null, colours: ['#ff0000', '#ffffff'], width: 2, effect: 'still', mode: 0, speed: 50, name: ''};
+function renderSwatches() {
+  $('#swatches').innerHTML = ed.colours.map((c, i) => `<span class="sw">
+      <input type="color" value="${c}" data-i="${i}" aria-label="Colour ${i + 1}">
+      ${ed.colours.length > 1 ? `<button type="button" data-rm="${i}" aria-label="Remove colour ${i + 1}">×</button>` : ''}</span>`).join('')
+    + (ed.colours.length < 8 ? '<button type="button" class="add" id="add-colour" aria-label="Add a colour">+</button>' : '');
+  if (state && $('#ed-preview').children.length !== state.total) wire($('#ed-preview'), Array(state.total).fill('#000'));
+  $('#ed-preview').dataset.f = '';
+}
+function renderEffects(s) {
+  const og = $('#ed-builtins'), want = s.effects.map(e => e.mode + ':' + e.name).join('|');
+  if (og.dataset.sig === want) return;
+  og.dataset.sig = want;
+  og.innerHTML = s.effects.map(e => `<option value="b:${e.mode}">Effect ${e.mode}${e.name ? ': ' + esc(e.name) : ''}</option>`).join('');
+  syncEditor();
+}
+function syncEditor() {                       // ed -> form controls
+  $('#ed-width').value = ed.width;
+  $('#ed-effect').value = ed.effect === 'builtin' ? 'b:' + ed.mode : ed.effect;
+  $('#ed-speed').value = ed.speed; $('#ed-name').value = ed.name;
+  $('#ed-bi').hidden = ed.effect !== 'builtin';
+  $('#ed-ename').value = ed.effect === 'builtin' ? (state?.effects.find(e => e.mode === ed.mode)?.name || '') : '';
+  $('#ed-title').textContent = ed.id ? `Editing ${ed.name}` : 'Make your own';
+  $('#ed-save').textContent = ed.id ? 'Save changes' : 'Save as a show';
+  $('#ed-cancel').hidden = !ed.id;
+  renderSwatches();
+}
+function edFrame(t) {                         // what the editor's pattern looks like t seconds in
+  const pat = ed.colours.flatMap(c => Array(ed.width).fill(c)), L = pat.length;
+  const off = ed.effect === 'chase' || ed.effect === 'converge' ? Math.floor(t / 0.6) : 0;
+  if (ed.effect === 'converge') {
+    const T = state.total, left = Array.from({length: Math.floor(T / 2)}, (_, p) => pat[(((p - off) % L) + L) % L]);
+    return left.concat(left.slice().reverse(), T % 2 ? [left[left.length - 1]] : []);   // mirror halves
+  }
+  return Array.from({length: state.total}, (_, p) => pat[(((p - off) % L) + L) % L]);
+}
+function paintEditor() {
+  if (!state || $('#ed-preview').children.length !== state.total) renderSwatches();
+  const t = still.matches ? 0 : Date.now() / 1000 - pageStart, f = edFrame(t), key = f.join('');
+  if ($('#ed-preview').dataset.f === key) return;
+  $('#ed-preview').dataset.f = key;
+  [...$('#ed-preview').children].forEach((b, i) => b.style.setProperty('--c', f[i]));
+}
+function edBody(extra) {
+  return {colours: ed.colours, width: ed.width, effect: ed.effect, mode: ed.mode, speed: ed.speed, ...extra};
+}
+$('#swatches').addEventListener('input', e => { if (e.target.dataset.i) { ed.colours[+e.target.dataset.i] = e.target.value; paintEditor(); } });
+$('#swatches').addEventListener('click', e => {
+  const rm = e.target.closest('[data-rm]');
+  if (rm) { ed.colours.splice(+rm.dataset.rm, 1); renderSwatches(); paintEditor(); }
+  if (e.target.closest('#add-colour')) { ed.colours.push(ed.colours[ed.colours.length - 1]); renderSwatches(); paintEditor(); }
+});
+$('#ed-width').addEventListener('change', e => { ed.width = +e.target.value; paintEditor(); });
+$('#ed-effect').addEventListener('change', e => {
+  const v = e.target.value;
+  if (v.startsWith('b:')) { ed.effect = 'builtin'; ed.mode = +v.slice(2); } else ed.effect = v;
+  syncEditor(); paintEditor();
+});
+$('#ed-speed').addEventListener('input', e => ed.speed = +e.target.value);
+$('#ed-name').addEventListener('input', e => ed.name = e.target.value);
+$('#ed-ename').addEventListener('change', async e => {
+  if (await api('/api/effect-name', {mode: ed.mode, name: e.target.value}))
+    toast(e.target.value.trim() ? `Effect ${ed.mode} is now "${e.target.value.trim()}"` : `Effect ${ed.mode} name cleared`);
+});
+$('#ed-try').addEventListener('click', async () => {
+  if (await api('/api/custom', edBody({id: 'try', play: true}))) { toast('Trying it on the lights'); loadPreviews(); }
+});
+$('#ed-cancel').addEventListener('click', () => { ed = {...ed, id: null, name: ''}; syncEditor(); });
+$('#editor').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!ed.name.trim()) { toast('Give the show a name first.', true); $('#ed-name').focus(); return; }
+  const editing = ed.id;
+  const s = await api('/api/custom', edBody({id: editing ? editing.slice(7) : null, name: ed.name, play: true}));
+  if (s) { toast(editing ? `Saved ${ed.name}` : `Saved and playing ${ed.name}`); ed = {...ed, id: null, name: ''}; syncEditor(); loadPreviews(); tab = 'custom'; showTab(); showView('shows'); }
+});
+$('#shows').addEventListener('click', async e => {
+  const edit = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]'), copy = e.target.closest('[data-copy]');
+  if (copy) {                                   // start a new playlist from a built-in one
+    const x = state.shows.find(v => v.id === copy.dataset.copy);
+    pl = {id: null, name: `My ${x.name.toLowerCase()}`, items: x.playlist.map(it => ({...it}))};
+    edMode = 'playlist'; renderPlaylist(); showTab(); showView('create');
+  }
+  if (edit) {
+    const x = state.shows.find(v => v.id === edit.dataset.edit);
+    if (x.spec.effect === 'playlist') {
+      edMode = 'playlist'; pl = {id: x.id, name: x.spec.name, items: x.spec.items.map(it => ({...it}))}; renderPlaylist();
+    } else {
+      edMode = 'pattern'; ed = {id: x.id, ...x.spec}; syncEditor(); paintEditor();
+    }
+    showTab(); showView('create');
+  }
+  if (del) {
+    const x = state.shows.find(v => v.id === del.dataset.del);
+    if (confirm(`Delete ${x.name}?`) && await api('/api/custom/delete', {id: x.id.slice(7)})) { toast(`Deleted ${x.name}`); loadPreviews(); }
+  }
+});
+renderSwatches();
+
+// ---- Renaming the lights ----
+$('#rename').addEventListener('click', () => {
+  $('#name-input').value = state?.lights_name || '';
+  $('#rename-form').hidden = false; $('.title-row').hidden = true; $('#name-input').focus(); $('#name-input').select();
+});
+function closeRename() { $('#rename-form').hidden = true; $('.title-row').hidden = false; $('#rename').focus(); }
+$('#rename-cancel').addEventListener('click', closeRename);
+$('#rename-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('#name-input').value.trim();
+  if (name && await api('/api/name', {name})) { toast(`Renamed to ${name}`); closeRename(); }
+});
+
+// ---- Zones ----
+function renderZones(s) {
+  const sw = $('#zone-switch');
+  sw.hidden = s.zones.length < 2;
+  sw.innerHTML = s.zones.map(z => `<button type="button" data-zone="${z.id}" aria-current="${z.id === s.zone}">${esc(z.name)}</button>`).join('');
+  $('#assign').innerHTML = s.all_strings.map(x => {
+    const owner = s.zones.find(z => z.strings.includes(x.name));
+    return `<li><span class="who">${esc(x.label)}<small>${esc(x.name)}, ${x.bulbs} bulbs</small></span>
+      <select data-string="${esc(x.name)}" aria-label="Zone for ${esc(x.label)}">
+        ${owner ? '' : '<option value="" selected>No zone (off)</option>'}
+        ${s.zones.map(z => `<option value="${z.id}"${owner?.id === z.id ? ' selected' : ''}>${esc(z.name)}</option>`).join('')}
+      </select></li>`;
+  }).join('');
+  $('#zone-delete').hidden = s.zones.length < 2;
+  $('#zone-delete').textContent = `Delete ${s.lights_name}`;
+  $('#hero').classList.toggle('empty-zone', !s.strings.length);
+  $('#no-strings')?.remove();
+  if (!s.strings.length) $('#hero').insertAdjacentHTML('afterend', '<p class="no-strings" id="no-strings">No strings in this zone yet. Add some under Zones, at the bottom of the page.</p>');
+}
+function switchZone(id) { if (id !== zone) { zone = id; api('/api/state'); } }
+$('#zone-switch').addEventListener('click', e => { const b = e.target.closest('[data-zone]'); if (b) switchZone(b.dataset.zone); });
+$('#assign').addEventListener('change', async e => {
+  const sel = e.target.closest('select'); if (!sel || !sel.value) return;
+  const target = state.zones.find(z => z.id === sel.value);
+  const s = await api('/api/zones/assign', {zone: sel.value, string: sel.dataset.string});
+  if (s) { toast(`${sel.dataset.string} is now in ${target.name}`); loadPreviews(); }
+});
+$('#zone-add').addEventListener('submit', async e => {
+  e.preventDefault();
+  const name = $('#zone-add-name').value.trim(); if (!name) return;
+  zone = null;
+  if (await api('/api/zones/add', {name})) { $('#zone-add-name').value = ''; toast(`Added ${name}. Now choose its strings.`); }
+});
+$('#zone-delete').addEventListener('click', async () => {
+  const name = state.lights_name;
+  if (!confirm(`Delete ${name}? Its strings move to ${state.zones.find(z => z.id !== state.zone).name}.`)) return;
+  if (await api('/api/zones/delete', {})) toast(`Deleted ${name}`);
+});
+
+// ---- Animate switch on still themes that also come animated ----
+function setPlay(b, moving) {
+  const id = moving ? b.dataset.moving : b.dataset.id;
+  if (b.dataset.play !== id) { b.dataset.play = id; b.dataset.f = ''; }
+}
+$('#shows').addEventListener('change', async e => {
+  const box = e.target.closest('input[data-pair]'); if (!box) return;
+  const b = $(`#shows .show[data-id="${box.dataset.pair}"]`), name = b.querySelector('.name').textContent;
+  setPlay(b, box.checked); tick();
+  // Flipping the switch picks this card: plays its animated (on) or still (off) version.
+  if (await api('/api/show', {show: b.dataset.play})) toast(`Playing ${name}${box.checked ? ', animated' : ''}`);
+});
+
+// The S-shaped wire from the end of each string, down under its bulbs, back to the start of the next.
+function joins() {
+  const rows = [...document.querySelectorAll('#hero .wire')];
+  if ($('#hero').classList.contains('oneline')) { rows.forEach(w => w.querySelector('.join')?.remove()); return; }
+  rows.forEach((w, i) => {
+    w.querySelector('.join')?.remove();
+    const next = rows[i + 1]; if (!next) return;
+    const a = w.getBoundingClientRect(), b = next.getBoundingClientRect();
+    const end = a.width + 10, start = b.left - a.left + 10;       // in the svg, which starts 10px left of the row
+    const drop = b.top - a.top;                                   // from this row's wire to the next one's
+    const run = drop - 9;                                         // the crossing, just above the next row's wire
+    const d = `M ${end - 2},1 C ${end + 10},1 ${end + 10},${run} ${end - 2},${run} L ${start + 2},${run} ` +
+              `C ${start - 10},${run} ${start - 10},${drop + 1} ${start + 2},${drop + 1}`;
+    w.insertAdjacentHTML('beforeend', `<svg class="join" width="${end + 20}" height="${drop + 4}" aria-hidden="true"><path d="${d}"/></svg>`);
+  });
+}
+addEventListener('resize', () => {
+  // switch between one row and stacked rows when the window crosses the width that fits every bulb
+  const s = state, hero = $('#hero');
+  if (s && (s.total > 0 && hero.parentElement.clientWidth / s.total >= 14) !== hero.classList.contains('oneline')) { hero.dataset.sig = ''; render(s); }
+  else joins();
+});
+
+async function api(path, body) {
+  try {
+    if (!body && path === '/api/state') path += '?zone=' + encodeURIComponent(zone || '');
+    const r = await fetch(path, body ? {method: 'POST', headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify({zone, ...body})} : {});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'The Pi rejected that change.');
+    render(j); return j;
+  } catch (e) {
+    toast(e.message.includes('fetch') ? "Can't reach the Pi. Are you on the home Wi-Fi?" : e.message, true);
+  }
+}
+
+document.querySelector('.power').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (await api('/api/power', {mode: b.dataset.mode}))
+    toast({on: 'Lights on', off: 'Lights off', auto: 'Following the schedule'}[b.dataset.mode]);
+});
+document.querySelector('.tabs[role=tablist]').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  tab = b.dataset.kind; showTab(); tick();
+});
+$('#shows').addEventListener('click', async e => {
+  const b = e.target.closest('.show'); if (!b || (b.dataset.play || b.dataset.id) === state?.show) return;
+  const s = await api('/api/show', {show: b.dataset.id});
+  if (s) toast(`Playing ${b.querySelector('.name').textContent}`);
+});
+// Schedule: on at a time / around sunset / around sunrise; off at a time / after a while / around sunrise or sunset.
+const SUN_OFFSETS = [-120, -90, -60, -45, -30, -20, -15, -10, -5, 0, 5, 10, 15, 20, 30, 45, 60, 90, 120];
+const AFTER = [60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 420, 480, 540, 600, 660, 720];
+const dur = m => m >= 60 ? `${m % 60 ? (m / 60).toFixed(1).replace('.0', '') : m / 60} hour${m === 60 ? '' : 's'}` : `${m} min`;
+function sunLabel(m, ev) { return m === 0 ? `At ${ev}` : `${dur(Math.abs(m)).replace(' hours', ' h').replace(' hour', ' h')} ${m < 0 ? 'before' : 'after'}`; }
+function fillOffsets(sel, ev) {
+  const v = sel.value; sel.innerHTML = SUN_OFFSETS.map(m => `<option value="${m}">${sunLabel(m, ev)}</option>`).join(''); if (v) sel.value = v;
+}
+$('#off-after').innerHTML = AFTER.map(m => `<option value="${m}">${dur(m)}</option>`).join('');
+function schedForm() {
+  const onK = $('#on-kind').value, offK = $('#off-kind').value;
+  return {on: onK === 'time' ? $('#on').value : onK, on_offset: onK === 'time' ? 0 : +$('#on-offset').value,
+          off: offK === 'time' ? $('#off').value : offK, off_offset: ['sunset', 'sunrise'].includes(offK) ? +$('#off-offset').value : 0,
+          off_after: +$('#off-after').value};
+}
+function showSchedParts() {
+  const onK = $('#on-kind').value, offK = $('#off-kind').value, sun = ['sunset', 'sunrise'];
+  fillOffsets($('#on-offset'), onK); fillOffsets($('#off-offset'), offK);
+  document.querySelectorAll('#sched [data-for]').forEach(l => {
+    const f = l.dataset.for;
+    l.hidden = !(f === 'on-time' ? onK === 'time' : f === 'on-sun' ? sun.includes(onK)
+               : f === 'off-time' ? offK === 'time' : f === 'off-after' ? offK === 'after' : sun.includes(offK));
+  });
+  $('#loc').hidden = !(sun.includes(onK) || sun.includes(offK));
+  schedDirty();
+}
+function fillSched(s) {
+  const r = s.schedule.rule, sun = ['sunset', 'sunrise'];
+  $('#on-kind').value = sun.includes(r.on_at) ? r.on_at : 'time';
+  $('#off-kind').value = r.off_at === 'after' || sun.includes(r.off_at) ? r.off_at : 'time';
+  $('#on').value = sun.includes(r.on_at) ? '16:00' : r.on_at;
+  $('#off').value = r.off_at === 'after' || sun.includes(r.off_at) ? '00:00' : r.off_at;
+  showSchedParts();
+  $('#on-offset').value = r.on_offset; $('#off-offset').value = r.off_offset;
+  $('#off-after').value = AFTER.includes(r.off_after) ? r.off_after : 360;
+  $('#lat').value = s.location?.lat ?? ''; $('#lon').value = s.location?.lon ?? '';
+  schedDirty();
+}
+function schedDirty() {
+  if (!state) return;
+  const f = schedForm(), r = state.schedule.rule;
+  const same = f.on === r.on_at && f.on_offset === r.on_offset && f.off === r.off_at && f.off_offset === r.off_offset
+    && (f.off !== 'after' || f.off_after === r.off_after);
+  $('#save').disabled = same;
+}
+['on-kind', 'off-kind'].forEach(id => $('#' + id).addEventListener('change', showSchedParts));
+['on', 'off', 'on-offset', 'off-offset', 'off-after'].forEach(id => $('#' + id).addEventListener('input', schedDirty));
+['on-offset', 'off-offset', 'off-after'].forEach(id => $('#' + id).addEventListener('change', schedDirty));
+// Locate me: the device's position where the browser allows it (secure pages only), else its time zone's main city.
+async function locateByZone() {
+  const s = await api('/api/location', {timezone: Intl.DateTimeFormat().resolvedOptions().timeZone});
+  if (s) toast(`Location set: ${s.location.name}`);
+}
+$('#here').addEventListener('click', () => {
+  if (!(window.isSecureContext && navigator.geolocation)) return locateByZone();
+  navigator.geolocation.getCurrentPosition(async p => {
+    const s = await api('/api/location', {lat: +p.coords.latitude.toFixed(2), lon: +p.coords.longitude.toFixed(2), name: "this device's location"});
+    if (s) toast('Location set from this device');
+  }, locateByZone, {timeout: 10000, maximumAge: 3600000});
+});
+$('#use-coords').addEventListener('click', async () => {
+  if (await api('/api/location', {lat: $('#lat').value.trim(), lon: $('#lon').value.trim()})) toast('Location set');
+});
+$('#sched').addEventListener('submit', async e => {
+  e.preventDefault();
+  const s = await api('/api/schedule', schedForm());
+  if (s) toast(`Schedule saved: ${s.schedule.text.replace(/^On /, 'on ')}`);
+});
+
+showView(view, true);
+api('/api/state');
+setInterval(() => document.hidden || api('/api/state'), 15000);
+</script>
+</body>
+</html>

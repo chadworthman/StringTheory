@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12161d">
+<title>Help: String Theory</title>
+<link rel="preload" href="/fonts/pacifico.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<style>
+  :root {
+    --night: #12161d; --panel: #1b212b; --edge: #2b3442; --text: #eef1f5; --muted: #a3adbb;
+    --amber: #ffbe55; --alert: #e5483f; --r-lg: 22px; --r-sm: 12px; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--night); color: var(--text);
+         font: 17px/1.45 ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         padding: max(18px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom)); }
+  main { max-width: 620px; margin: 0 auto; }
+  .credit { margin: 28px 0 8px; text-align: center; font-size: 13px; color: var(--muted); }
+  .credit a { color: inherit; }
+
+  a { color: var(--amber); }
+  :focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+  .back { display: inline-block; color: var(--muted); margin-bottom: 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; }
+  .brand img { border-radius: 9px; display: block; }
+  @font-face { font-family: "Pacifico"; src: url("/fonts/pacifico.woff2") format("woff2"); font-display: block; }
+  .brand span { font-family: "Pacifico", ui-rounded, cursive; font-weight: 400; font-size: 25px; letter-spacing: 0.01em;
+                line-height: 1.2; transform: translateY(-2px); }
+
+  h1 { font-size: 32px; line-height: 1.1; font-weight: 800; margin: 6px 0 8px; }
+  h2 { font-size: 21px; margin: 30px 0 10px; }
+  p, li { color: var(--muted); }
+  strong { color: var(--text); font-weight: 650; }
+  .guide { padding-left: 20px; margin: 0; display: grid; gap: 8px; }
+
+  .letters { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 12px; padding: 0; list-style: none; }
+  .letters a { display: grid; place-items: center; min-width: 34px; min-height: 34px; border-radius: 10px;
+               background: var(--panel); color: var(--text); text-decoration: none; font-weight: 650; }
+  .az { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .entry, .entry .top, .entry .name { min-width: 0; }
+  .az .letter { font-size: 15px; font-weight: 800; color: var(--amber); margin: 10px 4px 0; scroll-margin-top: 12px; }
+  .entry { background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-sm); padding: 14px;
+           display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .entry .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .entry .name { font-weight: 700; font-size: 18px; color: var(--text); }
+  .entry .kind { color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .entry .desc { margin: 0; font-size: 15px; }
+  .entry.playing { border-color: var(--amber); }
+  .wire { display: flex; height: 16px; position: relative; }
+  .wire::before { content: ""; position: absolute; left: 0; right: 0; top: 3px; height: 2px; background: var(--edge); }
+  .bulb { flex: 1 1 0; min-width: 0; display: flex; justify-content: center; position: relative; }
+  .bulb b { margin-top: 4px; width: min(72%, 8px); aspect-ratio: 0.62; border-radius: 50% 50% 50% 50% / 38% 38% 62% 62%;
+            background: var(--c); box-shadow: 0 0 5px var(--c); }
+  .play { justify-self: start; border: 1px solid var(--edge); background: transparent; color: var(--text);
+          border-radius: 14px; min-height: 40px; padding: 0 16px; font: inherit; font-weight: 650; font-size: 15px; }
+  .play[disabled] { opacity: .5; }
+  .plays { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toast { position: fixed; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translate(-50%, 140%);
+           background: var(--text); color: var(--night); padding: 12px 18px; border-radius: 999px; font-weight: 650;
+           transition: transform .25s ease; max-width: calc(100% - 32px); }
+  .toast.on { transform: translate(-50%, 0); }
+  .toast.err { background: var(--alert); color: var(--text); }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+  /* Each bulb shows exactly one colour: glows are drawn first, then every bulb's solid body on top, so a
+     neighbour's glow can never tint part of a bulb (real bulbs can't show two colours at once). */
+  .wire { isolation: isolate; }
+  .bulb b { position: relative; }
+  .bulb b::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: inherit; z-index: 2; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">Back to the lights</a>
+  <div class="brand"><img src="/logo.svg" alt="" width="34" height="34"><span>String Theory</span></div>
+  <h1>Help</h1>
+  <p id="zone-note" hidden></p>
+
+  <h2>Using the page</h2>
+  <ul class="guide">
+    <li><strong>The bar along the bottom</strong> switches between the four screens: <strong>Now</strong> (what's on, power and speed), <strong>Shows</strong> (everything you can play), <strong>Create</strong> (make your own patterns and playlists) and <strong>Setup</strong> (schedule, zones and this help).</li>
+    <li><strong>Your lights' name</strong> (on Now, under the bulbs) can be changed with <strong>Rename</strong>.</li>
+    <li><strong>The bulbs at the top</strong> show what each string is showing right now, one row per string. They stay in view as you scroll. Below them, a green dot means a string is doing what it should. Amber means it's missing some changes (usually weak Wi-Fi), and red means it isn't responding.</li>
+    <li><strong>Zones</strong> group strings so different parts of the house can play different shows on their own schedules. Switch zones with the buttons under the logo, and set them up under <strong>Zones</strong> on Setup.</li>
+    <li><strong>Schedule</strong> sets when the lights come on and go off each day.</li>
+    <li><strong>Power:</strong> <strong>On</strong> and <strong>Off</strong> override the schedule until it would next agree, then hand back to it. <strong>Schedule</strong> goes back to following it now.</li>
+    <li><strong>Speed</strong> appears for shows that move. Each show remembers its own speed. The top speed is where the lights would start skipping bulbs.</li>
+    <li><strong>On Shows</strong>, the chips filter to <strong>Still</strong> patterns, <strong>Moving</strong> shows, <strong>Playlists</strong> that switch between themes, <strong>Yours</strong> (patterns you've saved) and <strong>Tests</strong> for setting up the strings.</li>
+    <li><strong>Patterns made on Create</strong> can use the controllers' own built-in effects, which fade smoothly. Their numbers are all the controllers give, so try each one and name it once you've seen what it does.</li>
+  </ul>
+
+  <h2 id="all">All shows, A to Z</h2>
+  <ul class="letters" id="letters" aria-label="Jump to a letter"></ul>
+  <ol class="az" id="az"><li><p>Loading the shows…</p></li></ol>
+  <p class="credit">Made by <a href="https://chadworthman.com/">Chad Worthman</a></p>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = v => String(v).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
+const KIND = {still: 'Still', moving: 'Moving', playlist: 'Playlist', custom: 'Your pattern', test: 'Test'};
+let playing = null;
+
+function toast(msg, err) {
+  const t = $('#toast'); t.textContent = msg; t.classList.toggle('err', !!err); t.classList.add('on');
+  clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 2600);
+}
+function wire(colors) {
+  return `<div class="wire" aria-hidden="true">${colors.map(c =>
+    `<span class="bulb" style="--c:${c === '#000000' ? '#303846' : c}"><b></b></span>`).join('')}</div>`;
+}
+function render(s) {
+  playing = s.show;
+  if (s.zones.length > 1) { $('#zone-note').hidden = false; $('#zone-note').textContent = `Play buttons here change ${s.lights_name}.`; }
+  const shows = s.shows.filter(x => x.kind !== 'draft' && x.kind !== 'variant')
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, {sensitivity: 'base', ignorePunctuation: true}));
+  const letterOf = x => x.name[0].toUpperCase();
+  const letters = [...new Set(shows.map(letterOf))];
+  $('#letters').innerHTML = letters.map(l => `<li><a href="#l-${l}">${l}</a></li>`).join('');
+  let last = '';
+  $('#az').innerHTML = shows.map(x => {
+    const l = letterOf(x), head = l !== last ? `<li class="letter" id="l-${l}">${l}</li>` : '';
+    last = l;
+    const where = KIND[x.kind] + (x.moving_id ? ' or animated' : '') + (x.group && x.kind !== 'custom' && x.kind !== 'test' ? `, ${x.group}` : '');
+    const mv = x.moving_id, playingMv = mv === s.show;
+    return head + `<li class="entry${x.id === s.show || x.moving_id === s.show ? ' playing' : ''}">
+      <div class="top"><span class="name">${esc(x.name)}</span><span class="kind">${esc(where)}</span></div>
+      ${wire(x.preview)}
+      <p class="desc">${esc(x.desc)}${x.link ? ` <a href="${esc(x.link.url)}" title="${esc(x.link.title)}" target="_blank" rel="noopener">${esc(x.link.text)}</a>` : ''}</p>
+      <div class="plays"><button class="play" data-id="${x.id}"${x.id === s.show ? ' disabled' : ''}>${x.id === s.show ? 'Playing now' : 'Play'}</button>
+      ${mv ? `<button class="play" data-id="${mv}"${playingMv ? ' disabled' : ''}>${playingMv ? 'Playing animated' : 'Play animated'}</button>` : ''}</div>
+    </li>`;
+  }).join('');
+}
+async function load() {
+  try { render(await (await fetch('/api/state?zone=' + encodeURIComponent(localStorage.getItem('zone') || ''))).json()); }
+  catch { $('#az').innerHTML = "<li><p>Can't reach the Pi. Are you on the home Wi-Fi?</p></li>"; }
+}
+$('#az').addEventListener('click', async e => {
+  const b = e.target.closest('.play'); if (!b) return;
+  try {
+    const r = await fetch('/api/show', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                                       body: JSON.stringify({zone: localStorage.getItem('zone'), show: b.dataset.id})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'The Pi rejected that change.');
+    render(j);
+    toast(`Playing ${j.shows.find(x => x.id === b.dataset.id)?.name}` + (j.lit ? '' : '. The lights are off right now.'));
+  } catch (err) { toast(err.message.includes('fetch') ? "Can't reach the Pi. Are you on the home Wi-Fi?" : err.message, true); }
+});
+load();
+</script>
+</body>
+</html>
