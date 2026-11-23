@@ -39,7 +39,10 @@ def main():
         old = next((s['bulbs'] for s in current if s['name'] == name), 24)
         bulbs = ask(f'  Bulbs on "{name}"', str(old))
         if not bulbs.isdigit() or not 1 <= int(bulbs) <= 1000: sys.exit('Bulbs must be a number.')
-        strings.append({'name': name, 'bulbs': int(bulbs)})
+        entry = {'name': name, 'bulbs': int(bulbs)}
+        was = next((s for s in current if s['name'] == name), {})
+        if was.get('layout') and was.get('bulbs') == entry['bulbs']: entry['layout'] = was['layout']   # keep its bulb layout
+        strings.append(entry)
     cfg = json.loads(CONFIG.read_text()) if CONFIG.exists() else {}
     cfg['strings'] = strings
     CONFIG.write_text(json.dumps(cfg, indent=2) + '\n')

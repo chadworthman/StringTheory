@@ -126,10 +126,14 @@
     const cur = currentWindow(), nxt = nextWindow(), win = cur || nxt;
     const lit = st.mode === 'auto' ? !!cur : st.mode === 'on';
     p.brightness = p.brightnesses.includes(st.brightness) ? st.brightness : 1;
-    p.shows = p.shows.map(x => ({...x, speed: Math.min(st.speeds[x.id] || 1, x.max_speed)}))
+    p.shows = p.shows.map(x => ({...x, speed: Math.min(st.speeds[x.id] || 1, x.max_speed), reversed: !!st.reversed?.[x.id]}))
       .concat(Object.entries(st.customs).map(([id, spec]) => customItem(id, spec, D)));
     p.show = p.shows.some(x => x.id === st.show) ? st.show : D.state.show;
-    p.lights_name = st.name; p.zones = [{...p.zones[0], name: st.name}];
+    const speedOf = id => p.shows.find(x => x.id === id)?.speed || 1;
+    p.lights_name = st.name;
+    p.zones = [{...p.zones[0], name: st.name, direction: st.direction || 'left', show: p.show, started: st.started,
+                speed: speedOf(p.show), reversed: !!st.reversed?.[p.show], lit, held: st.mode !== 'auto'}];
+    p.house = Object.fromEntries(Object.entries(p.house).map(([n, h]) => [n, {...h, ...(st.house?.[n] || {})}]));
     p.schedule = {on: hm(win[0]), off: hm(win[1]), text: ruleText(), rule: {...st.rule}};
     p.location = st.location;
     p.mode = st.mode; p.lit = lit;
@@ -163,8 +167,26 @@
       case '/api/power':
         if (!['on', 'off', 'auto'].includes(body.mode)) return no('Mode must be on, off or auto.');
         st.mode = body.mode; break;
-      case '/api/follow': case '/api/goal-delay': case '/api/celebrate':
+      case '/api/follow': case '/api/goal-delay': case '/api/celebrate': 
         return no('Following games needs your own String Theory at home: it watches the NHL\'s live scores and lights up for goals.');
+      case '/api/direction':
+        if (!['left', 'right'].includes(body.direction)) return no('Direction must be left or right.');
+        st.direction = body.direction; break;
+      case '/api/reverse': {
+        const x = payload(D).shows.find(x => x.id === body.show);
+        if (!x?.reversible) return no("That show doesn't move, so it has no direction.");
+        st.reversed = {...st.reversed, [body.show]: !!body.reversed}; break;
+      }
+      case '/api/house': {                    // where a string hangs: kept in this browser, like everything else
+        const cur = payload(D).house[body.string]; if (!cur) return no('Unknown string.');
+        if (body.place === 'between' && (!body.with || body.with === body.string)) return no('Pick another string for it to sit between.');
+        const ch = {}; for (const k of ['row', 'place', 'with', 'flip', 'spots']) if (k in body) ch[k] = body[k];
+        st.house = {...st.house, [body.string]: {...(st.house?.[body.string] || {}), ...ch}}; break;
+      }
+      case '/api/scan': case '/api/strings/add':
+        return no('Finding and adding lights needs your own String Theory at home, on the same Wi-Fi as your lights.');
+      case '/api/layout': case '/api/locate':
+        return no('Bulb layouts change your real strings, so they need your own String Theory at home.');
       case '/api/brightness':
         if (!D.state.brightnesses.includes(body.brightness)) return no('Pick a brightness from the list.');
         st.brightness = body.brightness; break;

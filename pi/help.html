@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#12161d">
+<meta name="theme-color" content="#1c222c">
 <title>Help: String Theory</title>
 <link rel="preload" href="/fonts/pacifico.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="/logo.svg" type="image/svg+xml">
@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <style>
   :root {
-    --night: #12161d; --panel: #1b212b; --edge: #2b3442; --text: #eef1f5; --muted: #a3adbb;
+    --night: #1c222c; --panel: #262e3a; --edge: #38424f; --text: #eef1f5; --muted: #b2bcc8;
     --amber: #ffbe55; --alert: #e5483f; --r-lg: 22px; --r-sm: 12px; color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -84,14 +84,19 @@
 
   <h2>Using the page</h2>
   <ul class="guide">
-    <li><strong>The bar along the bottom</strong> switches between the four screens: <strong>Now</strong> (what's on, power and speed), <strong>Shows</strong> (everything you can play), <strong>Create</strong> (make your own patterns and playlists) and <strong>Setup</strong> (schedule, zones and this help).</li>
-    <li><strong>Your lights' name</strong> (on Now, under the bulbs) can be changed with <strong>Rename</strong>.</li>
+    <li><strong>The bar along the bottom</strong> switches between the four screens: <strong>Now</strong> (what's on, speed and brightness), <strong>Shows</strong> (everything you can play), <strong>Create</strong> (make your own patterns and playlists) and <strong>Setup</strong> (chips for Schedule, Bulbs, Zones and Help).</li>
+    <li><strong>Pull down</strong> from the top of the page and let go to refresh it.</li>
+    <li><strong>The zone row</strong> under the logo picks which zone the page controls, or <strong>All</strong> to change every zone at once: a show, power, speed, brightness, the schedule or the hockey team you follow. The switch at the end of the row turns the lights on or off. Zones are renamed or deleted under <strong>Zones</strong> on Setup.</li>
     <li><strong>The bulbs at the top</strong> show what each string is showing right now, one row per string. They stay in view as you scroll. Below them, a green dot means a string is doing what it should. Amber means it's missing some changes (usually weak Wi-Fi), and red means it isn't responding.</li>
-    <li><strong>Zones</strong> group strings so different parts of the house can play different shows on their own schedules. Switch zones with the buttons under the logo, and set them up under <strong>Zones</strong> on Setup.</li>
-    <li><strong>Schedule</strong> sets when the lights come on and go off each day.</li>
-    <li><strong>Power:</strong> <strong>On</strong> and <strong>Off</strong> override the schedule until it would next agree, then hand back to it. <strong>Schedule</strong> goes back to following it now.</li>
+    <li><strong>Zones</strong> group strings so different parts of the house can play different shows on their own schedules. Set them up under <strong>Zones</strong> on Setup: add, rename and delete zones, pick each string's zone, and say which end each zone starts at, seen from the street, so shows run the way the page draws them. <strong>Find new lights</strong> there finds lights you've added in the Smart Life app; add each one as a string, then pick its zone.</li>
+    <li><strong>Bulbs</strong> (on Setup) fits the lights to your roofline. Tap a bulb's number to turn it <strong>Off</strong> (for bulbs out of sight) or <strong>Join</strong> it to the bulb before, so they light up as one (for bulbs that run back around a corner). Shows then run along just the bulbs that are left, at an even pace. <strong>Find it on the string</strong> lights that bulb white for a moment so you can see which one it is. Saving restarts the lights for a few seconds. Below are the <strong>test patterns</strong> for checking the strings' order and every bulb.</li>
+    <li><strong>Schedule</strong> sets when the lights come on and go off each day: at set times, or around sunset or sunrise (for example 5 minutes before sunset, for 6 hours). Sun times need your rough location: tap <strong>Locate me</strong>. The schedule can also <strong>fade</strong> the lights in and out over a few seconds or minutes.</li>
+    <li><strong>Power:</strong> the switch in the zone row turns the lights on or off until the schedule would next agree, then hands back to it. While it's holding, <strong>Back to the schedule</strong> on Now follows the schedule again straight away.</li>
+    <li><strong>Reverse direction</strong> (under Speed, for shows that move) runs that show the other way. Each show remembers it. If your shows run the opposite way to the page, set which end your first bulb is at under <strong>Bulbs</strong> on Setup instead: that fixes every show at once.</li>
+    <li><strong>Brightness</strong> dims every show in a zone, from 10% to 100%.</li>
     <li><strong>Speed</strong> appears for shows that move. Each show remembers its own speed. The top speed is where the lights would start skipping bulbs.</li>
-    <li><strong>On Shows</strong>, the chips filter to <strong>Still</strong> patterns, <strong>Moving</strong> shows, <strong>Playlists</strong> that switch between themes, <strong>Yours</strong> (patterns you've saved) and <strong>Tests</strong> for setting up the strings.</li>
+    <li><strong>On Shows</strong>, the chips filter to <strong>Themes</strong> (grouped by occasion; still themes have an <strong>Animate</strong> switch for a moving version), <strong>Hockey</strong> teams, <strong>Playlists</strong> that switch between themes, and <strong>Yours</strong> (patterns you've saved). On a zone of just a few lights, such as a pair of floods, still themes step through all their colours, and each card has a bar of the show's colours.</li>
+    <li><strong>Hockey:</strong> tap a team to play its colours. Tap <strong>Follow games</strong> on a team instead and your regular show plays as usual, but during each of the team's games the lights switch to its colours, and every goal sets off a red goal light and flashes the team's colours, then the lights go back to your show. Set a <strong>Goal delay</strong> to match your TV, and use <strong>Test celebration</strong> to try it. Following a team is the only thing that uses the internet: it reads the NHL's public live scores.</li>
     <li><strong>Patterns made on Create</strong> can use the controllers' own built-in effects, which fade smoothly. Their numbers are all the controllers give, so try each one and name it once you've seen what it does.</li>
   </ul>
 
@@ -105,7 +110,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const esc = v => String(v).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
-const KIND = {still: 'Still', moving: 'Moving', hockey: 'Hockey', playlist: 'Playlist', custom: 'Your pattern', test: 'Test'};
+const KIND = {still: 'Theme', moving: 'Moving theme', hockey: 'Hockey', playlist: 'Playlist', custom: 'Your pattern', test: 'Test'};
 let playing = null;
 
 function toast(msg, err) {

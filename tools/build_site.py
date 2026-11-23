@@ -25,8 +25,11 @@ def demo_data():
     state = web.state_payload('1')
     # Use generic string names, never the device names from a real setup.
     rename = {name: f'String {chr(65 + i)}' for i, name in enumerate(L.ORDER)}
-    for s in state['strings'] + state['all_strings']: s['name'] = rename[s['name']]
+    for s in state['strings'] + state['all_strings'] + state['layout']: s['name'] = rename[s['name']]
+    for s in state['layout']: s['codes'] = ['on'] * s['bulbs']   # never a real bulb layout
     for z in state['zones']: z['strings'] = [rename[n] for n in z['strings']]
+    state['house'] = {rename[n]: {**p, 'with': rename.get(p.get('with'))} for n, p in state['house'].items()}
+    state['scan'] = {}                                            # never a real scan
     st = L.load_state()
     previews = {k: web.timeline(k, st, L) for k in L.SHOWS}
     shutil.rmtree(tmp)
@@ -57,7 +60,7 @@ DEMO_HEAD = '''<script src="/demo/demo.js"></script>
 <style>
   a.brand { color: inherit; text-decoration: none; width: fit-content; }
   .demo-note { max-width: 520px; margin: 0 auto 12px; padding: 10px 14px; border-radius: 12px; font-size: 14px;
-               background: #1e2633; border: 1px solid #2b3442; color: #d5dbe4; }
+               background: #262e3a; border: 1px solid #38424f; color: #d5dbe4; }
   .demo-note a { color: #ffbe55; }
   @media (min-width: 700px) { .demo-note { max-width: 980px; } }
   @media (min-width: 1150px) { .demo-note { max-width: 1200px; } }
@@ -84,7 +87,7 @@ def build():
         + ''.join(f'  <url><loc>{SITE}{p}</loc></url>\n' for p in ('/', '/demo/', '/demo/help')) + '</urlset>\n')
     (OUT / 'demo' / 'index.html').write_text(page(PI / 'index.html', share('/demo/', 'String Theory demo: try it with pretend lights',
         'The real String Theory app with pretend lights: browse every show, build a playlist and try the controls in your browser.') + DEMO_HEAD, [
-        ('<link rel="manifest" href="/manifest.webmanifest">\n', ''),
+        ('<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials">\n', ''),
         ('<title>String Theory</title>', '<title>String Theory demo</title>'),
         ('href="/help"', 'href="/demo/help"'),
         BRAND,

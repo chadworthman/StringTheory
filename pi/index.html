@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#12161d">
+<meta name="theme-color" content="#1c222c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
@@ -12,14 +12,14 @@
 <link rel="preload" href="/fonts/pacifico.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="/logo.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon.png">
-<link rel="manifest" href="/manifest.webmanifest">
+<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials">
 <style>
   :root {
-    --night: #12161d;      /* night sky background */
-    --panel: #1b212b;      /* raised surfaces */
-    --edge:  #2b3442;      /* borders, wire */
+    --night: #1c222c;      /* night sky background */
+    --panel: #262e3a;      /* raised surfaces */
+    --edge:  #38424f;      /* borders, wire */
     --text:  #eef1f5;      /* main text */
-    --muted: #a3adbb;      /* secondary text */
+    --muted: #b2bcc8;      /* secondary text */
     --amber:  #ffbe55;      /* the selected thing glows like a lit bulb */
     --alert:  #e5483f;      /* off */
     --r-lg: 22px; --r-sm: 12px;
@@ -27,7 +27,18 @@
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  html, body { overflow-x: clip; }   /* nothing (like the S-wire's bend) may push the page sideways on a phone */   /* class display rules must never un-hide things */
+  html, body { overflow-x: clip; overscroll-behavior-y: none; }   /* no browser pull-to-refresh: the page has its own (#ptr) */
+  /* Pull to refresh: at the top of the page, pull down; an arrow drops in and turns, and past the line it says
+     Release to refresh. Letting go reloads the page (new state and any page update). */
+  .ptr { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 30; display: flex;
+         align-items: center; gap: 8px; padding: 0 14px 0 8px; height: 40px; border-radius: 999px; background: var(--panel);
+         border: 1px solid var(--edge); color: var(--text); font-size: 14px; font-weight: 650; pointer-events: none;
+         box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.6); opacity: 0; transform: translate(-50%, -60px); }
+  .ptr svg { width: 24px; height: 24px; color: var(--amber); flex: none; }
+  .ptr.back { transition: transform 0.2s, opacity 0.2s; }
+  .ptr.go svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .ptr.go svg { animation: none; } }   /* nothing (like the S-wire's bend) may push the page sideways on a phone */   /* class display rules must never un-hide things */
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; min-height: 100vh; background: var(--night); color: var(--text);
@@ -88,15 +99,65 @@
   .rename { border: 0; background: none; color: var(--muted); font-size: 15px; padding: 8px 0 8px 8px; min-height: 40px; flex: none; }
   .rename-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; margin: 14px 0 6px; }
   .rename-form .btn1, .rename-form .btn2 { padding: 0 14px; min-height: 48px; }
-  .zone-switch { display: flex; gap: 6px; overflow-x: auto; margin: -4px 0 16px; padding-bottom: 2px; scrollbar-width: none; }
+  #scan-list li { grid-template-columns: minmax(0, 1fr) auto; }
+  .scan-add { display: flex; gap: 8px; align-items: center; }
+  .scan-add input { width: 64px; }
+  .scan-add span { color: var(--muted); font-size: 14px; }
+  .sub.first { margin-top: 0; }
+  .hang { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .hang li { border: 1px solid var(--edge); border-radius: var(--r-sm); padding: 10px 12px; display: grid; gap: 8px; }
+  .hang .who small { display: block; }
+  .hang .opts { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .hang .tabs { margin: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hang .tabs button { font-size: 14px; padding: 0 10px; min-height: 40px; }
+  .hang .spot { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: center; color: var(--muted); font-size: 14px; }
+  .zone-row { display: flex; align-items: center; gap: 8px; margin: -4px 0 16px; }
+  .zone-switch { display: flex; gap: 6px; overflow-x: auto; flex: 1; min-width: 0; padding-bottom: 2px; scrollbar-width: none; }
+  .zone-row .switch { flex: none; margin-left: auto; padding: 0 0 2px 4px; }   /* the shown zone's lights, on every screen */
   .zone-switch button { flex: none; border: 1px solid var(--edge); background: var(--panel); color: var(--muted);
                         border-radius: 999px; min-height: 40px; padding: 0 16px; font-weight: 650; }
   .zone-switch button[aria-current="true"] { background: var(--text); color: var(--night); border-color: var(--text); }
+  .sub { font-size: 16px; margin: 18px 0 8px; color: var(--text); }
+  .zone-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .zone-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center;
+                  border: 1px solid var(--edge); border-radius: var(--r-sm); padding: 8px 8px 8px 12px; }
+  .zone-list .who { color: var(--text); font-weight: 650; min-width: 0; overflow-wrap: anywhere; }
+  .zone-list .who small { display: block; color: var(--muted); font-weight: 400; font-size: 14px; }
+  .zone-list .btn2 { min-height: 44px; padding: 0 14px; border-radius: 14px; }
+  .zone-list form { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
+  .zone-list input { min-width: 0; background: var(--night); color: var(--text); border: 1px solid var(--edge);
+                     border-radius: 14px; padding: 0 12px; min-height: 44px; font-size: 17px; }
+  .zone-list form .btn1 { min-height: 44px; padding: 0 14px; border-radius: 14px; }
   .assign { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
   .assign li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 10px; align-items: center; }
   .assign .who { color: var(--text); font-weight: 650; }
   .assign .who small { display: block; color: var(--muted); font-weight: 400; font-size: 14px; }
   .note { color: var(--muted); font-size: 15px; margin: 0; }
+  /* Bulb layout: every real bulb as a numbered button, in rows of 8. Off bulbs are hollow; a joined bulb is
+     tied to the one before it by a short amber bar, so a group reads as one piece. */
+  .bmap-string { margin: 14px 0 0; }
+  .dirs { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+  .dirs .who { color: var(--text); font-weight: 650; display: block; margin-bottom: 8px; }
+  .dirs .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; }
+  #reverse[aria-pressed="true"] { border-color: var(--amber); color: var(--amber); }
+  .bmap-string .who { color: var(--text); font-weight: 650; display: block; margin-bottom: 8px; }
+  .bmap-string .who small { color: var(--muted); font-weight: 400; font-size: 14px; }
+  .bmap { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+  .bmap button { position: relative; min-height: 40px; border-radius: 10px; border: 1px solid var(--edge);
+                 background: var(--panel); color: var(--text); font-size: 14px; font-weight: 650; padding: 0; }
+  /* off bulbs: red, hatched and labelled, so they stand out from the lit ones at a glance */
+  .bmap button[data-code="off"] { border: 1.5px dashed var(--alert); color: color-mix(in srgb, var(--alert) 70%, var(--text));
+    background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--alert) 22%, transparent) 0 5px, transparent 5px 10px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05; }
+  .bmap button[data-code="off"]::after { content: "off"; font-size: 11px; font-weight: 600; opacity: 0.9; }
+  .bmap button[data-code="join"]::before { content: ""; position: absolute; left: -8px; top: 50%; width: 10px; height: 4px;
+                                           margin-top: -2px; background: var(--amber); border-radius: 2px; }
+  .bmap button[data-code="join"], .bmap button:has(+ [data-code="join"]) { border-color: color-mix(in srgb, var(--amber) 55%, var(--edge)); }
+  .bmap button[aria-pressed="true"] { outline: 2px solid var(--amber); outline-offset: 1px; }
+  .bulb-edit { margin-top: 14px; border: 1px solid var(--edge); border-radius: var(--r-sm); padding: 12px; }
+  .bulb-edit .who { color: var(--text); font-weight: 650; margin: 0 0 10px; }
+  .bulb-edit .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+  .bulb-edit .tabs button { font-size: 14px; padding: 0 4px; }
   .no-strings { color: var(--muted); margin: 0; padding: 8px 0; }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
   .live { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 15; margin: 0 -16px 10px; padding: 8px 16px 10px;
@@ -132,6 +193,13 @@
   .live-label #live-state { flex: none; }
   /* Strings read like wrapped text: every row runs left to right, as the real strings do, and an S-shaped
      wire runs from the end of one string, below its bulbs, back to the start of the next (drawn by joins()). */
+  .hero .bulb.other { opacity: 0.4; }
+  .hero .bulb.off b { box-shadow: none; filter: none; }
+  .hero .bulb.flood.off b { box-shadow: none; border: 1px solid #4a5566; }
+  .hero .bulb.nozone b { box-shadow: none; }
+  .hero .floods { position: relative; height: 34px; }
+  .hero .bulb.flood { position: absolute; top: 4px; transform: translateX(-50%); width: 30px; }
+  .hero .bulb.flood b { width: 22px; aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 16px 4px var(--c); }
   .hero .join { position: absolute; top: 3px; left: -10px; overflow: visible; pointer-events: none; }
   .hero .join path { fill: none; stroke: var(--edge); stroke-width: 2; stroke-linecap: round; }
   .hero { display: grid; gap: 14px; }
@@ -153,13 +221,6 @@
   h2 { font-size: 21px; font-weight: 700; margin: 30px 0 12px; }
 
   /* Power: three-way switch */
-  .power { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--panel);
-           border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 5px; gap: 5px; }
-  .power button { border: 0; background: transparent; border-radius: 17px; min-height: 52px;
-                  font-weight: 650; color: var(--muted); }
-  .power button[aria-pressed="true"] { background: var(--text); color: var(--night); }
-  .power button[data-mode="on"][aria-pressed="true"]  { background: var(--amber); }
-  .power button[data-mode="off"][aria-pressed="true"] { background: var(--alert); color: var(--text); }
   .hint { color: var(--muted); font-size: 15px; margin: 8px 4px 0; min-height: 1.45em; }
   .hint:empty { display: none; }
 
@@ -178,6 +239,9 @@
                  font-size: 15px; padding: 0 2px; }
   .tabs.two button { font-size: 17px; }
   .tabs button[aria-selected="true"] { background: var(--text); color: var(--night); }
+  /* Setup's sections: four equal chips; only the chosen section shows */
+  #setup-tabs { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-flow: row; justify-content: stretch; }
+  #setup-tabs button { font-size: 15px; padding: 0 2px; }
   .tabs .n { font-weight: 500; opacity: .7; }
   /* Custom tab */
   .editor { background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 16px;
@@ -241,11 +305,25 @@
           border-radius: var(--r-sm); padding: 14px 14px 12px; display: grid; gap: 6px; cursor: pointer; }
   .show .name { font-weight: 700; font-size: 18px; display: flex; justify-content: space-between; gap: 8px; }
   .show .desc { color: var(--muted); font-size: 15px; }
+  /* short zones (floods): every colour the show will put on them, as one bar under the bulbs */
+  .show .colours { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin: 0 0 2px; }
+  .show .colours i { flex: 1; }
   a.more { display: inline-block; margin: 2px 16px 10px; color: var(--amber); font-size: 15px; }
   .now-card a.more { margin: 6px 0 0; }
   .show[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset, 0 0 22px -8px var(--amber); }
   .show[aria-pressed="true"] .name::after { content: "Playing"; color: var(--amber); font-size: 14px; font-weight: 650; }
-  .show[data-team][aria-pressed="true"] .name::after { content: "Following"; }
+  /* the team you follow: a solid amber badge and a warm tint, so it stands out among 32 cards */
+  .show[data-team][data-following] .name::after { content: "✓ Following"; background: var(--amber); color: var(--night);
+                                                       border-radius: 999px; padding: 2px 10px; font-weight: 750; }
+  .card:has(.show[data-team][data-following]) { background: color-mix(in srgb, var(--amber) 9%, var(--panel)); }
+  .card .show[data-team][data-following] { background: transparent; }
+  .card-actions [data-follow][aria-pressed="true"] { color: var(--amber); }
+  /* the Hockey tab's banner: who you follow, in their colours */
+  .hk-following { display: grid; gap: 10px; padding: 12px 14px; border-radius: var(--r-sm); border: 1px solid var(--amber);
+                  background: color-mix(in srgb, var(--amber) 9%, var(--night)); }
+  .hk-following .who { margin: 0; color: var(--muted); font-size: 15px; }
+  .hk-following .who strong { display: block; color: var(--text); font-size: 21px; font-weight: 750; line-height: 1.25; }
+  .hk-following .wire { height: 24px; }
   .hockey .hk-settings { display: grid; gap: 12px; }
   .show:active { transform: scale(0.99); }
   .card { border: 1px solid var(--edge); background: var(--panel); border-radius: var(--r-sm); overflow: hidden; }
@@ -308,7 +386,10 @@
 <body>
 <div class="topbar">
   <div class="brand"><img src="/logo.svg" alt="" width="34" height="34"><span>String Theory</span></div>
-  <nav class="zone-switch" id="zone-switch" aria-label="Zones" hidden></nav>
+  <div class="zone-row">
+    <nav class="zone-switch" id="zone-switch" aria-label="Zones" hidden></nav>
+    <label class="switch" id="zone-power-wrap" hidden><input type="checkbox" role="switch" id="zone-power"><span id="zone-power-label">Off</span></label>
+  </div>
 </div>
 <!-- The live bulbs: stay at the top of the screen on every screen while you scroll -->
 <div class="live"><div class="hero" id="hero" aria-hidden="true"></div>
@@ -318,14 +399,7 @@
   <section class="view" data-view="now" aria-label="Now">
     <div class="title-row">
       <h1 id="lights-name">Your lights</h1>
-      <button type="button" class="rename" id="rename" aria-label="Rename these lights">Rename</button>
     </div>
-    <form class="rename-form" id="rename-form" hidden>
-      <label for="name-input" class="sr">Name for these lights</label>
-      <input type="text" id="name-input" maxlength="40" required>
-      <button type="submit" class="btn1">Save</button>
-      <button type="button" class="btn2" id="rename-cancel">Cancel</button>
-    </form>
     <p class="status" id="status">Connecting to the Pi…</p>
     <ul class="health" id="health" aria-label="What the strings are doing"></ul>
 
@@ -338,13 +412,8 @@
 
     <p class="hockey-now" id="hockey-now" hidden></p>
 
-    <h2 id="power-h">Power</h2>
-    <div class="power" role="group" aria-labelledby="power-h">
-      <button data-mode="on" aria-pressed="false">On</button>
-      <button data-mode="auto" aria-pressed="false">Schedule</button>
-      <button data-mode="off" aria-pressed="false">Off</button>
-    </div>
     <p class="hint" id="power-hint"></p>
+    <button type="button" class="btn2 wide" id="to-schedule" hidden>Back to the schedule</button>
 
   <div id="speed-sec" hidden>
     <h2 id="speed-h">Speed</h2>
@@ -354,11 +423,12 @@
       <div class="ends" aria-hidden="true"><span>Slower</span><span>Faster</span></div>
     </div>
     <p class="hint" id="speed-hint"></p>
+    <button type="button" class="btn2 wide" id="reverse" aria-pressed="false" hidden>Reverse direction</button>
   </div>
 
     <h2 id="bright-h">Brightness</h2>
     <div class="speed">
-      <div class="read"><strong id="bright-val">100%</strong><span>Every show in this zone</span></div>
+      <div class="read"><strong id="bright-val">100%</strong><span id="bright-for">Every show in this zone</span></div>
       <input type="range" id="bright" min="0" max="0" step="1" aria-labelledby="bright-h" aria-describedby="bright-val">
       <div class="ends" aria-hidden="true"><span>Dimmer</span><span>Brighter</span></div>
     </div>
@@ -369,15 +439,17 @@
   <section class="view" data-view="shows" aria-labelledby="shows-h" hidden>
     <h1 class="view-title" id="shows-h">Shows</h1>
     <div class="tabs" role="tablist" aria-labelledby="shows-h">
-      <button role="tab" data-kind="still" aria-selected="false" aria-controls="shows">Still</button>
-      <button role="tab" data-kind="moving" aria-selected="false" aria-controls="shows">Moving</button>
+      <button role="tab" data-kind="themes" aria-selected="false" aria-controls="shows">Themes</button>
       <button role="tab" data-kind="hockey" aria-selected="false" aria-controls="shows">Hockey</button>
       <button role="tab" data-kind="playlist" aria-selected="false" aria-controls="shows">Playlists</button>
       <button role="tab" data-kind="custom" aria-selected="false" aria-controls="shows">Yours</button>
-      <button role="tab" data-kind="test" aria-selected="false" aria-controls="shows">Tests</button>
     </div>
     <div class="sched hockey" id="hockey-panel" hidden>
-      <p class="note">Your regular show plays as usual. Tap a team and its show takes over during each of its games, celebrating every goal with a red goal light and the team's colours, then hands back.</p>
+      <div class="hk-following" id="hk-following" hidden>
+        <div class="wire" id="hk-wire"></div>
+        <p class="who">Following <strong id="hk-team"></strong></p>
+      </div>
+      <p class="note">Tap a team to play its colours. Tap <strong>Follow games</strong> and your regular show plays as usual, but the team's show takes over during each of its games, celebrating every goal with a red goal light and the team's colours, then hands back.</p>
       <p class="hint" id="hk-status"></p>
       <div class="hk-settings" id="hk-settings">
         <label class="switch"><input type="checkbox" role="switch" id="hk-power"><span>Turn the lights on for games</span></label>
@@ -451,10 +523,17 @@
     </form>
   </section>
 
-  <!-- SETUP: schedule, zones, help -->
+  <!-- SETUP: schedule, bulbs, zones, help, one section at a time (chips) -->
   <section class="view" data-view="setup" aria-labelledby="setup-h" hidden>
     <h1 class="view-title" id="setup-h">Setup</h1>
-    <h2 id="sched-h">Schedule <span class="for" id="sched-for"></span></h2>
+    <div class="tabs" role="tablist" aria-label="Setup sections" id="setup-tabs">
+      <button role="tab" data-sec="schedule" aria-selected="false" aria-controls="sec-schedule">Schedule</button>
+      <button role="tab" data-sec="bulbs" aria-selected="false" aria-controls="sec-bulbs">Bulbs</button>
+      <button role="tab" data-sec="zones" aria-selected="false" aria-controls="sec-zones">Zones</button>
+      <button role="tab" data-sec="help" aria-selected="false" aria-controls="sec-help">Help</button>
+    </div>
+    <div class="setup-sec" id="sec-schedule" role="tabpanel" aria-labelledby="sched-h">
+    <h2 id="sched-h" class="sr">Schedule <span class="for" id="sched-for"></span></h2>
     <form class="sched" id="sched">
       <div class="times">
         <div class="col">
@@ -487,21 +566,62 @@
       <p class="hint" id="sched-now"></p>
       <button class="save" type="submit" id="save" disabled>Save schedule</button>
     </form>
+    </div>
 
-    <h2 id="zones-h">Zones</h2>
+    <div class="setup-sec" id="sec-bulbs" role="tabpanel" aria-labelledby="bulbs-h" hidden>
+    <h2 id="bulbs-h" class="sr">Bulbs</h2>
+    <div class="sched">
+      <h3 class="sub first">Where each string hangs</h3>
+      <p class="note">This draws your house in the bulbs at the top. Strings run end to end along a row, sit between another string's bulbs (every other bulb), or are flood lights you place along the house. It only changes the picture, not the shows.</p>
+      <ul class="hang" id="hang"></ul>
+    </div>
+    <div class="sched">
+      <p class="note">Turn off bulbs that are out of sight, or join bulbs so they light up as one, such as bulbs that run back around a corner. Shows then run along the bulbs that are left. Tap a bulb to change it.</p>
+      <div id="bmaps"></div>
+      <div class="bulb-edit" id="bulb-edit" hidden>
+        <p class="who" id="be-title"></p>
+        <div class="tabs" role="group" aria-label="This bulb" id="be-codes">
+          <button type="button" data-code="on" aria-pressed="false">Own colour</button>
+          <button type="button" data-code="join" aria-pressed="false">Join previous</button>
+          <button type="button" data-code="off" aria-pressed="false">Off</button>
+        </div>
+        <button type="button" class="btn2 wide" id="be-find">Find it on the string</button>
+      </div>
+      <button class="save" type="button" id="bulbs-save" disabled>Save bulbs</button>
+      <p class="hint" id="bulbs-hint">Saving restarts the lights for a few seconds.</p>
+    </div>
+    <h3 class="sub">Test patterns</h3>
+    <p class="note">Check the strings are in the right order, every bulb works, and the layout above is right. Tapping one plays it in this zone.</p>
+    <ul class="shows" id="test-shows"></ul>
+    </div>
+
+    <div class="setup-sec" id="sec-zones" role="tabpanel" aria-labelledby="zones-h" hidden>
+    <h2 id="zones-h" class="sr">Zones</h2>
     <div class="sched">
       <p class="note">A zone is a group of strings with its own name, show, speed, power and schedule. Each string belongs to one zone. Saved patterns and playlists work in every zone.</p>
-      <ul class="assign" id="assign"></ul>
+      <h3 class="sub">Your zones</h3>
+      <ul class="zone-list" id="zone-list"></ul>
       <form class="rename-form" id="zone-add">
         <label for="zone-add-name" class="sr">New zone name</label>
         <input type="text" id="zone-add-name" maxlength="40" placeholder="New zone, e.g. Garage" required>
         <button type="submit" class="btn1">Add zone</button>
       </form>
-      <button type="button" class="btn2 wide" id="zone-delete">Delete this zone</button>
+      <h3 class="sub">Which zone each string is in</h3>
+      <ul class="assign" id="assign"></ul>
+      <h3 class="sub">Which end each zone starts at</h3>
+      <ul class="dirs" id="dirs"></ul>
+      <h3 class="sub">New lights</h3>
+      <p class="note">Added lights in the Smart Life app? Find them here, then add each one as a string and put it in a zone.</p>
+      <button type="button" class="btn2 wide" id="scan">Find new lights</button>
+      <p class="hint" id="scan-status" aria-live="polite"></p>
+      <ul class="zone-list" id="scan-list"></ul>
+    </div>
     </div>
 
-    <h2>Help</h2>
+    <div class="setup-sec" id="sec-help" role="tabpanel" aria-labelledby="help-h" hidden>
+    <h2 id="help-h" class="sr">Help</h2>
     <a class="card-link" href="/help">Help, and every show from A to Z</a>
+    </div>
   </section>
   <p class="credit">Made by <a href="https://chadworthman.com/">Chad Worthman</a></p>
 </main>
@@ -513,11 +633,13 @@
     <button type="button" data-view="setup" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>Setup</button>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="ptr" id="ptr" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg><span>Pull to refresh</span></div>
 
 <script>
 const $ = s => document.querySelector(s);
 let state = null, savedSched = null, tab = null;
-let zone = localStorage.getItem('zone');           // which zone this phone is looking at
+let zone = localStorage.getItem('zone');
+let allZones = localStorage.getItem('allZones') === '1';   // the All chip: changes go to every zone; the page shows the biggest           // which zone this phone is looking at
 // Screens (the bottom bar): Now, Shows, Create, Setup. The last one used on this phone comes back.
 const VIEWS = ['now', 'shows', 'create', 'setup'];
 let view = VIEWS.includes(localStorage.getItem('view')) ? localStorage.getItem('view') : 'now';
@@ -528,10 +650,12 @@ function showView(v, keepScroll) {
   document.querySelectorAll('#bottom-nav button').forEach(b => b.setAttribute('aria-current', b.dataset.view === v ? 'page' : 'false'));
   if (state) tick();
 }
+// Shows' tabs: Themes holds still and moving shows together, grouped by occasion (each still has Animate).
+const tabOf = k => k === 'still' || k === 'moving' ? 'themes' : k;
 function showTab() {
   localStorage.setItem('tab', tab);              // come back to this tab next time
   document.querySelectorAll('.tabs button[data-kind]').forEach(b => b.setAttribute('aria-selected', b.dataset.kind === tab));
-  document.querySelectorAll('#shows li').forEach(li => li.hidden = li.dataset.kind !== tab);
+  document.querySelectorAll('#shows li').forEach(li => li.hidden = tabOf(li.dataset.kind) !== tab);
   $('#hockey-panel').hidden = tab !== 'hockey';
   $('#editor').hidden = edMode !== 'pattern';
   $('#pl-editor').hidden = edMode !== 'playlist';
@@ -551,9 +675,9 @@ function wire(el, colors, dark) {
 }
 
 // Which frame of a show is showing `t` seconds after it started: [change key, 'rrggbb' per bulb].
-function frameAt(id, t, quick) {
-  const tl = previews?.[id]; if (!tl) return null;
-  if (tl.items) { const f = playlistFrame(quick ? quickOf(tl) : tl, t); return f && [f, f]; }
+function frameAt(id, t, quick, pv = previews) {
+  const tl = pv?.[id]; if (!tl) return null;
+  if (tl.items) { const f = playlistFrame(quick ? quickOf(tl) : tl, t, pv); return f && [f, f]; }
   const c = tl.period ? ((t % tl.period) + tl.period) % tl.period : 0, f = tl.frames;
   let lo = 0, hi = f.length - 1;
   while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (f[mid][0] <= c) lo = mid; else hi = mid - 1; }
@@ -579,15 +703,15 @@ function quickOf(tl) {
   });
   return tl._quick = {items, period: items.reduce((a, it) => a + it.hold + it.tdur, 0), tstep: tl.tstep};
 }
-function playlistFrame(tl, t) {
+function playlistFrame(tl, t, pv = previews) {
   const its = tl.items, n = its.length;
   let c = ((t % tl.period) + tl.period) % tl.period;
   for (let i = 0; i < n; i++) {
     const it = its[i], into = its[(i - 1 + n) % n].tdur, nxt = its[(i + 1) % n];
-    if (c < it.hold) return frameAt(it.show, c + into)?.[1];
+    if (c < it.hold) return frameAt(it.show, c + into, false, pv)?.[1];
     c -= it.hold;
     if (it.tdur && c < it.tdur) {
-      const old = frameAt(it.show, c + into + it.hold)?.[1], neu = frameAt(nxt.show, c)?.[1];
+      const old = frameAt(it.show, c + into + it.hold, false, pv)?.[1], neu = frameAt(nxt.show, c, false, pv)?.[1];
       if (!old || !neu) return old || neu;
       const step = it.step || tl.tstep, k = Math.floor(c / step) + 1;
       if (it.transition === 'chase') return neu.slice(0, k * 6) + old.slice(k * 6);
@@ -595,7 +719,7 @@ function playlistFrame(tl, t) {
     }
     c -= it.tdur;
   }
-  return frameAt(its[0].show, 0)?.[1];
+  return frameAt(its[0].show, 0, false, pv)?.[1];
 }
 function paint(bulbs, hex, from = 0) {        // colour bulbs from a 'rrggbb…' string starting at bulb `from`
   bulbs.forEach((b, i) => {
@@ -603,24 +727,22 @@ function paint(bulbs, hex, from = 0) {        // colour bulbs from a 'rrggbb…'
     b.style.setProperty('--c', c === '000000' ? '#303846' : '#' + c);   // a dark bulb looks unlit, not black
   });
 }
+const flipHex = h => (h.match(/.{6}/g) || []).reverse().join('');     // a frame mirrored end to end
+const isRev = id => !!state?.shows.find(x => x.id === id)?.reversed;
 function speedOf(id) { return state?.shows.find(x => x.id === id)?.speed ?? 1; }
 function liveT() { return (Date.now() / 1000 + clockOffset - (state?.started ?? 0)) * speedOf(state?.show); }
 function tick() {
   if (!previews || !state) return;
-  const hero = $('#hero');
-  const live = frameAt(state.show, liveT());
-  if (live && hero.dataset.f !== `${state.show}:${live[0]}`) {
-    hero.dataset.f = `${state.show}:${live[0]}`;
-    hero.querySelectorAll('.wire').forEach((w, i) => paint([...w.querySelectorAll('.bulb')], live[1], offsets[i]));
-  }
+  paintHouse();
   if (view === 'create') paintEditor();
-  if (view === 'shows') document.querySelectorAll('.show').forEach(b => {   // only animate what's on screen
+  if (view === 'shows' || view === 'setup') document.querySelectorAll(view === 'shows' ? '#shows .show' : '#test-shows .show').forEach(b => {   // only animate what's on screen
     if (b.parentElement.hidden) return;
     const id = b.dataset.play || b.dataset.id;
     // The playing show's card keeps time with the real lights; the rest loop from when the page opened.
     const quick = !!previews[id]?.items;          // playlists: sped-up preview on the page's own clock
     const fr = frameAt(id, id === state.show && !quick ? liveT() : (still.matches ? 0 : (Date.now() / 1000 - pageStart) * speedOf(id)), quick);
-    if (fr && b.dataset.f !== String(fr[0])) { b.dataset.f = fr[0]; paint([...b.querySelectorAll('.bulb')], fr[1]); }
+    const rev = isRev(id), key = fr && `${fr[0]}:${rev}`;
+    if (fr && b.dataset.f !== key) { b.dataset.f = key; paint([...b.querySelectorAll('.bulb')], rev ? flipHex(fr[1]) : fr[1]); }
   });
 }
 loadPreviews();
@@ -644,92 +766,91 @@ function render(s) {
   zone = s.zone; localStorage.setItem('zone', zone);
   if (zoneChanged && state) { tab = null; previews = null; loadPreviews(); }
   state = s; clockOffset = s.now - Date.now() / 1000;
-  renderZones(s);
-  $('#lights-name').textContent = s.lights_name;
+  renderZones(s); renderBulbs(s); renderScan(s);
+  $('#lights-name').textContent = allZones ? 'All zones' : s.lights_name;
+  $('#bright-for').textContent = allZones ? 'Every zone' : 'Every show in this zone';
   const cur = s.shows.find(x => x.id === s.show) || s.shows[0];
-  const hero = $('#hero');
-  offsets = s.strings.map((_, i) => s.strings.slice(0, i).reduce((a, x) => a + x.bulbs, 0));
-  // All the strings on one continuous row when there's room (about 14px a bulb), else one row per string.
-  const oneLine = s.total > 0 && hero.parentElement.clientWidth / s.total >= 14;
-  const heroSig = s.strings.map(x => x.name + x.bulbs).join('|') + (oneLine ? '|one' : '|rows');
-  if (hero.dataset.sig !== heroSig) {
-    hero.dataset.sig = heroSig;
-    hero.classList.toggle('oneline', oneLine);
-    hero.innerHTML = s.strings.map(() => '<div class="wire"></div>').join('');
-    const most = Math.max(...s.strings.map(x => x.bulbs));
-    hero.querySelectorAll('.wire').forEach((w, i) => {
-      w.style.width = oneLine ? `${100 * s.strings[i].bulbs / s.total}%`  // end to end, as on the porch
-                              : `${100 * s.strings[i].bulbs / most}%`;    // rows as long as the strings really are
-      wire(w, cur.preview.slice(offsets[i], offsets[i] + s.strings[i].bulbs));
-    });
-    hero.dataset.f = '';
-    joins();
-  }
-  hero.querySelectorAll('.wire').forEach(w => w.classList.toggle('dark', !s.lit));
+  buildHouse(s);
 
   const {on, off} = s.schedule;
   let st;
   if (s.mode === 'auto') st = s.lit ? `<strong>On</strong> until ${fmt(off)}.` : `<strong>Off</strong> until ${fmt(on)}.`;
   else st = `<strong>${s.lit ? 'On' : 'Off'}</strong>, held until ${fmt(s.override_until)}.`;
-  $('#status').innerHTML = `${st} Showing ${cur.name.toLowerCase().replace(/^\w/, c => c.toUpperCase())}.`;
+  const nameOf = id => (s.shows.find(x => x.id === id)?.name || 'its show');
+  $('#status').innerHTML = allZones
+    ? s.zones.map(z => `${esc(z.name)}: <strong>${z.lit ? 'On' : 'Off'}</strong>${z.strings.length ? `, ${esc(nameOf(z.show))}` : ', no strings'}.`).join(' ')
+    : `${st} Showing ${cur.name.toLowerCase().replace(/^\w/, c => c.toUpperCase())}.`;
 
   const h = s.health;
   $('#health').innerHTML = !h.engine
     ? `<li class="bad">The light show program on the Pi isn't running. Restart it with <strong>sudo systemctl restart string-theory</strong>.</li>`
     : h.strings.map(x => `<li class="${x.level}"><span><strong>${x.label}:</strong> ${x.text}${x.since ? ` since ${fmt(x.since)}` : ''}.</span></li>`).join('');
 
-  document.querySelectorAll('.power button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === s.mode));
+  // Power is the switch in the zone row; here, just what the schedule is doing and a way back to it after a hold.
   $('#power-hint').textContent = s.mode === 'auto'
-    ? `Lights follow the schedule: ${fmt(on)} to ${fmt(off)}.`
-    : `Staying ${s.mode} until ${fmt(s.override_until)}, then back to the schedule.`;
+    ? `Lights follow the schedule: ${fmt(on)} to ${fmt(off)}. The switch at the top turns them on or off until the schedule next changes.`
+    : `Held ${s.mode} until ${fmt(s.override_until)}, then back to the schedule.`;
+  $('#to-schedule').hidden = s.mode === 'auto' && !(allZones && s.zones.some(z => z.held));
 
   const ul = $('#shows');
-  const sig = s.shows.map(x => x.id + x.name + x.desc + x.preview.join('')).join('|');
+  const sig = s.shows.map(x => x.id + x.name + x.desc + x.preview.join('') + (x.colours || []).join('')).join('|');
   if (ul.dataset.sig !== sig) {
     ul.dataset.sig = sig;
     const seen = {};                            // a heading wherever the group changes within a tab
     ul.innerHTML = s.shows.map(x => {
-      const head = x.group && seen[x.kind] !== x.group && !['custom', 'draft', 'test', 'hockey'].includes(x.kind)
+      const head = x.group && seen[tabOf(x.kind)] !== x.group && !['custom', 'draft', 'test', 'hockey'].includes(x.kind)
         ? `<li class="group" data-kind="${x.kind}"><h3>${esc(x.group)}</h3></li>` : '';
-      seen[x.kind] = x.group;
+      seen[tabOf(x.kind)] = x.group;
       return head + `
       <li data-kind="${x.kind}">${x.moving_id || x.kind === 'hockey' ? '<div class="card">' : ''}<button class="show" data-id="${x.id}"${x.moving_id ? ` data-moving="${x.moving_id}"` : ''}${x.kind === 'hockey' ? ' data-team' : ''} aria-pressed="false">
         <span class="name">${esc(x.name)}</span>
-        <span class="wire" aria-hidden="true"></span>
+        <span class="wire" aria-hidden="true"></span>${x.colours?.length ? `
+        <span class="colours" aria-hidden="true">${x.colours.map(c => `<i style="background:${c}"></i>`).join('')}</span>` : ''}
         <span class="desc">${esc(x.desc)}</span>
       </button>${x.link ? `<a class="more" href="${esc(x.link.url)}" title="${esc(x.link.title)}" target="_blank" rel="noopener">${esc(x.link.text)}</a>` : ''}${x.spec && x.kind !== 'draft' ? `<div class="card-actions">
         <button type="button" data-edit="${x.id}">Edit</button><button type="button" data-del="${x.id}">Delete</button></div>`
         : x.playlist ? `<div class="card-actions"><button type="button" data-copy="${x.id}">Edit a copy</button></div>`
-        : x.kind === 'hockey' ? `<div class="card-actions"><button type="button" data-playnow="${x.id}">${x.id === s.show ? 'Playing now' : 'Play now'}</button></div></div>`
+        : x.kind === 'hockey' ? `${x.moving_id ? `<label class="switch"><input type="checkbox" role="switch" data-pair="${x.id}"><span>Animate</span></label>` : ''}<div class="card-actions"><button type="button" data-follow="${x.id}" aria-pressed="false">Follow games</button></div></div>`
         : x.moving_id ? `<label class="switch"><input type="checkbox" role="switch" data-pair="${x.id}"><span>Animate</span></label></div>` : ''}</li>`;
     }).join('');
     ul.querySelectorAll('.show').forEach((b, i) => wire(b.querySelector('.wire'), s.shows[i].preview));
+    $('#test-shows').replaceChildren(...ul.querySelectorAll('li[data-kind="test"]'));   // tests live in Setup > Bulbs
   }
-  ul.querySelectorAll('.show').forEach(b => {
+  document.querySelectorAll('#shows .show, #test-shows .show').forEach(b => {
     const m = b.dataset.moving;
     if (m) {                                    // Animate switch: on only while this card plays its animated version
       const box = ul.querySelector(`input[data-pair="${b.dataset.id}"]`);
       box.checked = s.show === m;
       setPlay(b, box.checked);
+      const bar = b.querySelector('.colours');   // short zones: the colours of the version the switch picks
+      if (bar) bar.innerHTML = (s.shows.find(x => x.id === (box.checked ? m : b.dataset.id))?.colours || [])
+        .map(c => `<i style="background:${c}"></i>`).join('');
     }
-    const pn = b.parentElement.querySelector('[data-playnow]');
-    if (pn) pn.textContent = b.dataset.id === s.show ? 'Playing now' : 'Play now';
-    b.setAttribute('aria-pressed', 'team' in b.dataset ? b.dataset.id === s.follow         // hockey: the team you follow
-                                                      : b.dataset.id === s.show || (!!m && m === s.show));
+    const fo = b.parentElement.querySelector('[data-follow]');   // hockey: the team this zone follows
+    if (fo) { const on = b.dataset.id === s.follow; fo.textContent = on ? '✓ Following games' : 'Follow games';
+              fo.setAttribute('aria-pressed', on); b.toggleAttribute('data-following', on); }
+    b.setAttribute('aria-pressed', b.dataset.id === s.show || (!!m && m === s.show));
   });
   if (!tab && location.hash === '#newplaylist') { tab = 'custom'; edMode = 'playlist'; showView('create'); }
-  // Start on the tab named in the link (#still etc.), else the last tab chosen on this phone, else Still.
-  const TABS = ['still', 'moving', 'hockey', 'playlist', 'custom', 'test'];
-  if (!tab && TABS.includes(location.hash.slice(1))) showView('shows');
+  // Start on the tab named in the link (#themes etc.; old #still and #moving links open Themes), else the last
+  // tab chosen on this phone, else Themes.
+  const TABS = ['themes', 'hockey', 'playlist', 'custom'];
+  const linked = {still: 'themes', moving: 'themes'}[location.hash.slice(1)] || location.hash.slice(1);
+  if (!tab && TABS.includes(linked)) showView('shows');
   if (!tab && VIEWS.includes(location.hash.slice(1))) showView(location.hash.slice(1));
-  if (!tab) tab = TABS.find(k => '#' + k === location.hash)
-                 || (TABS.includes(localStorage.getItem('tab')) ? localStorage.getItem('tab') : 'still');
+  if (!tab) tab = TABS.find(k => k === linked)
+                 || tabOf(TABS.includes(tabOf(localStorage.getItem('tab'))) ? tabOf(localStorage.getItem('tab')) : 'themes');
   // The Now screen's "Playing" card and the schedule heading
   $('#now-name').textContent = cur.name; $('#now-desc').textContent = cur.desc;
   $('#now-desc').insertAdjacentHTML('beforeend', cur.link ? ` <a class="more" href="${esc(cur.link.url)}" title="${esc(cur.link.title)}" target="_blank" rel="noopener">${esc(cur.link.text)}</a>` : '');
   $('#live-name').textContent = cur.name;                     // the bulb bar says what it's showing
   $('#live-state').textContent = !s.strings.length ? '' : s.lit ? 'On' : 'Off';
-  $('#sched-for').textContent = s.zones.length > 1 ? `for ${s.lights_name}` : '';
+  $('#zone-power-wrap').hidden = !s.strings.length;           // quick On/Off for this zone, beside the zone chips
+  const lit = allZones ? s.zones.some(z => z.lit) : s.lit;       // All: on while any zone is on
+  $('#zone-power').checked = lit; $('#zone-power-label').textContent = lit ? 'On' : 'Off';
+  $('#zone-power').setAttribute('aria-label', allZones ? 'All lights' : `${s.lights_name} lights`);
+  $('#sched-for').textContent = s.zones.length < 2 ? '' : allZones ? 'for every zone' : `for ${s.lights_name}`;
+  $('#sched-h').classList.toggle('sr', s.zones.length < 2);   // the chip says Schedule; the heading only adds which zone
   renderEffects(s);
   if (!$('#pl-steps').children.length) renderPlaylist();
   showTab();
@@ -737,6 +858,8 @@ function render(s) {
   // Speed: only for shows that move, and only up to what the strings can keep up with.
   const steps = s.speeds.filter(v => v <= cur.max_speed), sl = $('#speed');
   $('#speed-sec').hidden = !cur.animated;
+  const rv = $('#reverse'); rv.hidden = !cur.reversible; rv.setAttribute('aria-pressed', !!cur.reversed);
+  rv.textContent = cur.reversed ? 'Reversed: tap to go the usual way' : 'Reverse direction';
   $('#speed-for').textContent = cur.name;
   sl.max = steps.length - 1;
   if (document.activeElement !== sl) { sl.value = steps.indexOf(cur.speed); showSpeed(); }
@@ -788,7 +911,13 @@ function showHockey(s) {
   $('#hk-settings').hidden = !s.follow;
   $('#hk-test').disabled = !(s.follow || s.teams.some(t => s.show.replace(/move$/, '') === t.id));
   if (document.activeElement !== $('#hk-delay')) $('#hk-delay').value = s.goal_delay;
-  $('#hk-status').textContent = s.follow ? hockeyText(s) : 'Not following a team.';
+  $('#hk-status').textContent = s.follow ? hockeyText(s).replace(/^Following the [^.]*\.\s*/, '') : 'Not following a team.';   // the banner names the team
+  const team = s.follow && s.shows.find(x => x.id === s.follow);
+  $('#hk-following').hidden = !team;
+  if (team && $('#hk-wire').dataset.team !== team.id) {
+    $('#hk-wire').dataset.team = team.id; $('#hk-team').textContent = team.name;
+    wire($('#hk-wire'), team.preview);
+  }
   $('#hockey-now').hidden = !s.follow;
   $('#hockey-now').innerHTML = s.game_mode ? `<strong>Game mode.</strong> ${esc(hockeyText(s))}` : esc(hockeyText(s));
 }
@@ -975,38 +1104,255 @@ $('#shows').addEventListener('click', async e => {
 renderSwatches();
 
 // ---- Renaming the lights ----
-$('#rename').addEventListener('click', () => {
-  $('#name-input').value = state?.lights_name || '';
-  $('#rename-form').hidden = false; $('.title-row').hidden = true; $('#name-input').focus(); $('#name-input').select();
-});
-function closeRename() { $('#rename-form').hidden = true; $('.title-row').hidden = false; $('#rename').focus(); }
-$('#rename-cancel').addEventListener('click', closeRename);
-$('#rename-form').addEventListener('submit', async e => {
-  e.preventDefault();
-  const name = $('#name-input').value.trim();
-  if (name && await api('/api/name', {name})) { toast(`Renamed to ${name}`); closeRename(); }
-});
 
 // ---- Zones ----
 function renderZones(s) {
   const sw = $('#zone-switch');
   sw.hidden = s.zones.length < 2;
-  sw.innerHTML = s.zones.map(z => `<button type="button" data-zone="${z.id}" aria-current="${z.id === s.zone}">${esc(z.name)}</button>`).join('');
+  if (s.zones.length < 2 && allZones) { allZones = false; localStorage.setItem('allZones', '0'); }
+  sw.innerHTML = (s.zones.length > 1 ? `<button type="button" data-zone="all" aria-current="${allZones}">All</button>` : '')
+    + s.zones.map(z => `<button type="button" data-zone="${z.id}" aria-current="${!allZones && z.id === s.zone}">${esc(z.name)}</button>`).join('');
   $('#assign').innerHTML = s.all_strings.map(x => {
     const owner = s.zones.find(z => z.strings.includes(x.name));
-    return `<li><span class="who">${esc(x.label)}<small>${esc(x.name)}, ${x.bulbs} bulbs</small></span>
+    return `<li><span class="who">${esc(x.label)}<small>${esc(x.name)}, ${(s.layout || []).find(l => l.name === x.name)?.bulbs ?? x.bulbs} bulbs</small></span>
       <select data-string="${esc(x.name)}" aria-label="Zone for ${esc(x.label)}">
         ${owner ? '' : '<option value="" selected>No zone (off)</option>'}
         ${s.zones.map(z => `<option value="${z.id}"${owner?.id === z.id ? ' selected' : ''}>${esc(z.name)}</option>`).join('')}
       </select></li>`;
   }).join('');
-  $('#zone-delete').hidden = s.zones.length < 2;
-  $('#zone-delete').textContent = `Delete ${s.lights_name}`;
+  renderZoneList(s);
   $('#hero').classList.toggle('empty-zone', !s.strings.length);
   $('#no-strings')?.remove();
-  if (!s.strings.length) $('#hero').insertAdjacentHTML('afterend', '<p class="no-strings" id="no-strings">No strings in this zone yet. Add some under Zones, at the bottom of the page.</p>');
+  if (!s.strings.length) $('#hero').insertAdjacentHTML('afterend', '<p class="no-strings" id="no-strings">No strings in this zone yet. Add some under Setup, Zones.</p>');
 }
-function switchZone(id) { if (id !== zone) { zone = id; api('/api/state'); } }
+// ---- Bulb layout: off and joined bulbs, per string (saved in config.json; the lights restart with it) ----
+let bulbEdits = {}, bulbPick = null;            // edits not saved yet: {string: [code per bulb]}; picked: {string, i}
+const codesOf = x => bulbEdits[x.name] || x.codes;
+function renderHang(s) {
+  const H = s.house || {}, el = $('#hang');
+  if (el.contains(document.activeElement) && document.activeElement.type === 'range') return;   // don't redraw mid-drag
+  el.innerHTML = s.all_strings.map(x => {
+    const p = H[x.name] || {}, others = s.all_strings.filter(o => o.name !== x.name && H[o.name]?.place !== 'flood');
+    const place = p.place === 'between' ? 'with:' + p.with : p.place;
+    const lead = p.place === 'after' && s.all_strings.find(o => H[o.name]?.place === 'after' && H[o.name].row === p.row)?.name;
+    const flipOK = p.place === 'between' || lead === x.name;   // a row's starting end is set on its first string
+    return `<li data-string="${esc(x.name)}"><span class="who">${esc(x.label)}<small>${esc(x.name)}, ${x.bulbs} bulb${x.bulbs > 1 ? 's' : ''}</small></span>
+      <div class="opts"><select data-k="place" aria-label="How ${esc(x.label)} hangs">
+        <option value="after"${place === 'after' ? ' selected' : ''}>End to end</option>
+        ${others.map(o => `<option value="with:${esc(o.name)}"${place === 'with:' + o.name ? ' selected' : ''}>Between ${esc(o.label)}'s bulbs</option>`).join('')}
+        <option value="flood"${place === 'flood' ? ' selected' : ''}>Flood lights</option></select>
+      ${p.place === 'after' ? `<select data-k="row" aria-label="Row for ${esc(x.label)}">${[1, 2, 3].map(r => `<option value="${r}"${p.row === r ? ' selected' : ''}>Row ${r}</option>`).join('')}</select>` : '<span></span>'}</div>
+      ${p.place === 'after' && !flipOK ? `<p class="hint">Carries on from ${esc(s.all_strings.find(o => o.name === lead)?.label || 'the string before')}'s row.</p>`
+        : p.place === 'flood'
+        ? (p.spots || []).map((v, j) => `<label class="spot">${x.bulbs > 1 ? `Light ${j + 1}` : 'Where'}<input type="range" min="0" max="100" value="${v}" data-spot="${j}" aria-label="${esc(x.label)} light ${j + 1}, left to right"></label>`).join('')
+        : `<div class="tabs" role="group" aria-label="Where ${esc(x.label)}'s bulb 1 is">
+            <button type="button" data-flip="0" aria-pressed="${!p.flip}">${p.place === 'after' ? 'Left end' : 'Bulb 1 on the left'}</button>
+            <button type="button" data-flip="1" aria-pressed="${!!p.flip}">${p.place === 'after' ? 'Right end' : 'Bulb 1 on the right'}</button></div>`}</li>`;
+  }).join('');
+}
+async function saveHang(li, change) {
+  if (await api('/api/house', {string: li.dataset.string, ...change})) toast('Saved where it hangs');
+}
+$('#hang').addEventListener('change', e => {
+  const li = e.target.closest('li'); if (!li) return;
+  if (e.target.dataset.k === 'place') {
+    const v = e.target.value;
+    saveHang(li, v.startsWith('with:') ? {place: 'between', with: v.slice(5)} : {place: v});
+  } else if (e.target.dataset.k === 'row') saveHang(li, {row: +e.target.value});
+  else if ('spot' in e.target.dataset) {
+    const spots = [...li.querySelectorAll('[data-spot]')].map(r => +r.value);
+    saveHang(li, {spots});
+  }
+});
+$('#hang').addEventListener('input', e => {     // move the flood in the picture while dragging
+  if (!('spot' in e.target.dataset)) return;
+  const li = e.target.closest('li'), name = li.dataset.string, j = +e.target.dataset.spot;
+  const el = [...document.querySelectorAll('#hero .bulb.flood')].find(b => b.dataset.s === name && +b.dataset.j === j);
+  if (el) el.style.left = e.target.value + '%';
+});
+$('#hang').addEventListener('click', e => {
+  const b = e.target.closest('[data-flip]'); if (!b || b.getAttribute('aria-pressed') === 'true') return;
+  saveHang(b.closest('li'), {flip: b.dataset.flip === '1'});
+});
+function renderBulbs(s) {
+  renderHang(s);
+  if (!s.layout) return;
+  // Which end each zone's first bulb is at, seen from the street. Right: the engine mirrors that zone's shows.
+  $('#dirs').innerHTML = s.zones.filter(z => z.strings.length).map(z => {
+    const first = s.all_strings.find(x => x.name === z.strings[0]);
+    return `<li><span class="who">${s.zones.length > 1 ? esc(z.name) + ': s' : 'S'}een from the street, ${esc(first.label)}'s bulb 1 is at the</span>
+      <div class="tabs" role="group" aria-label="Where ${esc(z.name)} starts" data-zone="${z.id}">
+        <button type="button" data-dir="left" aria-pressed="${z.direction !== 'right'}">Left end</button>
+        <button type="button" data-dir="right" aria-pressed="${z.direction === 'right'}">Right end</button>
+      </div></li>`;
+  }).join('');
+  $('#bmaps').innerHTML = s.layout.map(x => {
+    const codes = codesOf(x), lit = codes.filter((c, i) => c === 'on' || (c === 'join' && !codes.slice(0, i).some(d => d !== 'off'))).length;
+    return `<div class="bmap-string"><span class="who">${esc(x.label)} <small>${esc(x.name)}, ${x.bulbs} bulbs` +
+      (lit !== x.bulbs ? `, shows use ${lit}` : '') + `</small></span><div class="bmap" data-string="${esc(x.name)}">` +
+      codes.map((c, i) => `<button type="button" data-i="${i}" data-code="${c}" aria-pressed="${bulbPick?.string === x.name && bulbPick.i === i}"` +
+        ` aria-label="Bulb ${i + 1}, ${c === 'off' ? 'off' : c === 'join' ? 'joined to the one before' : 'own colour'}">${i + 1}</button>`).join('') +
+      `</div></div>`;
+  }).join('');
+  const ed = $('#bulb-edit'); ed.hidden = !bulbPick;
+  if (bulbPick) {
+    const x = s.layout.find(l => l.name === bulbPick.string), c = codesOf(x)[bulbPick.i];
+    $('#be-title').textContent = `${x.label}, bulb ${bulbPick.i + 1}`;
+    document.querySelectorAll('#be-codes button').forEach(b => {
+      b.setAttribute('aria-pressed', b.dataset.code === c);
+      if (b.dataset.code === 'join') b.disabled = !codesOf(x).slice(0, bulbPick.i).some(d => d !== 'off');
+    });
+  }
+  $('#bulbs-save').disabled = !Object.keys(bulbEdits).length;
+}
+$('#dirs').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-dir]'); if (!b || b.getAttribute('aria-pressed') === 'true') return;
+  const z = b.closest('[data-zone]').dataset.zone, was = zone;
+  zone = z;                                       // the setting belongs to that zone; come back to this one after
+  const ok = await api('/api/direction', {direction: b.dataset.dir});
+  if (was !== z) { zone = was; await api('/api/state'); }
+  if (ok) toast(b.dataset.dir === 'right' ? 'Shows now start from the right-hand end' : 'Shows now start from the left-hand end');
+});
+$('#reverse').addEventListener('click', async () => {
+  const cur = state.shows.find(x => x.id === state.show), rev = !cur.reversed;
+  if (await api('/api/reverse', {show: state.show, reversed: rev})) toast(rev ? `${cur.name} reversed` : `${cur.name} goes the usual way`);
+});
+$('#bmaps').addEventListener('click', e => {
+  const b = e.target.closest('.bmap button'); if (!b) return;
+  const pick = {string: b.closest('.bmap').dataset.string, i: +b.dataset.i};
+  bulbPick = bulbPick?.string === pick.string && bulbPick.i === pick.i ? null : pick;
+  renderBulbs(state);
+});
+$('#be-codes').addEventListener('click', e => {
+  const b = e.target.closest('button[data-code]'); if (!b || !bulbPick) return;
+  const x = state.layout.find(l => l.name === bulbPick.string);
+  const codes = [...codesOf(x)]; codes[bulbPick.i] = b.dataset.code;
+  if (codes.every(c => c === 'off')) return toast('Leave at least one bulb on.', true);
+  if (codes.join() === x.codes.join()) delete bulbEdits[x.name]; else bulbEdits[x.name] = codes;
+  renderBulbs(state);
+});
+$('#be-find').addEventListener('click', async () => {
+  if (!bulbPick) return;
+  const x = state.layout.find(l => l.name === bulbPick.string);
+  if (await api('/api/locate', {string: bulbPick.string, bulb: bulbPick.i}))
+    toast(`Bulb ${bulbPick.i + 1} on ${x.label} is lit white for ${state.find_secs} seconds.`);
+});
+$('#bulbs-save').addEventListener('click', async () => {
+  const btn = $('#bulbs-save'); btn.disabled = true;
+  const edits = bulbEdits;
+  bulbEdits = {}; bulbPick = null;
+  if (!await postAndWait('/api/layout', {layouts: edits}, $('#bulbs-hint'), 'Saved. The lights are restarting with the new layout…')) {
+    bulbEdits = edits; btn.disabled = false; return;
+  }
+  $('#bulbs-hint').textContent = 'Saving restarts the lights for a few seconds.';
+  toast('Bulb layout saved');
+});
+// ---- New lights: scan.py finds devices in your Tuya account and on the network; add one as a string ----
+let scanPoll = null;
+function renderScan(s) {
+  const sc = s.scan || {}, list = (sc.devices || []).filter(d => !d.in_use);
+  $('#scan').disabled = !!sc.running;
+  $('#scan').textContent = sc.running ? 'Looking…' : 'Find new lights';
+  $('#scan-status').textContent = sc.running ? (sc.step || 'Looking…') : sc.error ? sc.error
+    : sc.devices ? (list.length ? `Found ${list.length} device${list.length > 1 ? 's' : ''} that ${list.length > 1 ? "aren't strings" : "isn't a string"} yet.` : 'No new lights found. Every light is already a string.')
+    : '';
+  $('#scan-list').innerHTML = sc.running ? '' : list.map(d => `<li>
+    <span class="who">${esc(d.name)}<small>${esc([d.product, d.model].filter(Boolean).join(', '))}${d.online ? '' : ', not found on the network'}</small></span>
+    ${d.online ? `<form class="scan-add" data-name="${esc(d.name)}"><label class="sr" for="b-${esc(d.name)}">Bulbs</label>
+      <input type="number" id="b-${esc(d.name)}" min="1" max="1000" value="24" aria-label="Bulbs on ${esc(d.name)}"><span aria-hidden="true">bulbs</span>
+      <button type="submit" class="btn2">Add</button></form>` : ''}</li>`).join('');
+  if (sc.running && !scanPoll) scanPoll = setInterval(() => api('/api/state'), 3000);
+  if (!sc.running && scanPoll) { clearInterval(scanPoll); scanPoll = null; }
+}
+$('#scan').addEventListener('click', () => api('/api/scan', {}));
+$('#scan-list').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target, name = f.dataset.name, bulbs = +f.querySelector('input').value;
+  if (await postAndWait('/api/strings/add', {name, bulbs}, $('#scan-status'), `Adding ${name}. The lights restart for a few seconds…`))
+    toast(`${name} added. Pick its zone above.`);
+});
+// A change that restarts the lights and the page server (bulb layout, a new string): wait for them to come back.
+async function postAndWait(path, body, hint, msg) {
+  try {
+    const r = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({zone, ...body})});
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || 'The Pi rejected that change.');
+  } catch (e) { toast(e.message.includes('fetch') ? "Can't reach the Pi. Are you on the home Wi-Fi?" : e.message, true); return false; }
+  hint.textContent = msg;
+  for (let tries = 0; tries < 30; tries++) {        // the page server restarts too; wait for it to answer
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      const r = await fetch('/api/state?zone=' + encodeURIComponent(zone || ''));
+      if (r.ok) { render(await r.json()); loadPreviews(); break; }
+    } catch (e) {}
+  }
+  return true;
+}
+// ---- Setup's sections (chips): the last one used on this phone comes back; #schedule, #bulbs, #zones, #help open one ----
+const SECS = ['schedule', 'bulbs', 'zones', 'help'];
+let setupSec = SECS.includes(location.hash.slice(1)) ? location.hash.slice(1)
+             : SECS.includes(localStorage.getItem('setupSec')) ? localStorage.getItem('setupSec') : 'schedule';
+if (SECS.includes(location.hash.slice(1))) showView('setup');
+function showSec(sec) {
+  setupSec = sec; localStorage.setItem('setupSec', sec);
+  document.querySelectorAll('#setup-tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.sec === sec));
+  document.querySelectorAll('.setup-sec').forEach(el => el.hidden = el.id !== 'sec-' + sec);
+}
+showSec(setupSec);
+$('#setup-tabs').addEventListener('click', e => { const b = e.target.closest('button[data-sec]'); if (b) showSec(b.dataset.sec); });
+// ---- Pull to refresh (the installed app has none of its own; the browser's is turned off so they don't fight) ----
+(() => {
+  const ptr = $('#ptr'), arrow = ptr.querySelector('svg'), label = ptr.querySelector('span');
+  const GO = 70, MAX = 110;                       // how far (after damping) to pull before release refreshes
+  let y0 = null, x0 = 0, pulling = false, d = 0, busy = false;
+  const set = dist => {
+    const p = Math.min(1, dist / GO);
+    ptr.style.opacity = p; ptr.style.transform = `translate(-50%, ${-60 + dist}px)`;
+    arrow.style.transform = dist >= GO ? 'rotate(180deg)' : `rotate(${p * 180}deg)`;
+    label.textContent = dist >= GO ? 'Release to refresh' : 'Pull to refresh';
+  };
+  const reset = () => { ptr.classList.add('back'); ptr.style.opacity = 0; ptr.style.transform = 'translate(-50%, -60px)';
+                        setTimeout(() => ptr.classList.remove('back'), 220); };
+  addEventListener('touchstart', e => {
+    y0 = null; pulling = false; d = 0;
+    if (busy || window.scrollY > 0 || e.touches.length !== 1 || e.target.closest('input, select, textarea, dialog')) return;
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX;
+  }, {passive: true});
+  addEventListener('touchmove', e => {
+    if (y0 === null) return;
+    const dy = e.touches[0].clientY - y0, dx = Math.abs(e.touches[0].clientX - x0);
+    if (!pulling) {
+      if (Math.max(dy, dx) < 8) return;           // wait to see which way the finger is going
+      if (dy <= dx || window.scrollY > 0) { y0 = null; return; }   // sideways or up: leave it to the page
+      pulling = true; ptr.classList.remove('back');
+    }
+    d = Math.max(0, Math.min(MAX, (dy - 8) * 0.55));
+    if (e.cancelable) e.preventDefault();
+    set(d);
+  }, {passive: false});
+  const end = () => {
+    if (!pulling) { y0 = null; return; }
+    y0 = null; pulling = false;
+    if (d < GO) return reset();
+    busy = true; ptr.classList.add('go'); arrow.style.transform = ''; label.textContent = 'Refreshing…';
+    arrow.innerHTML = '<path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v4h-4"/>';   // the arrow turns into a spinner
+    ptr.style.transform = `translate(-50%, ${-60 + GO}px)`;
+    setTimeout(() => location.reload(), 250);
+  };
+  addEventListener('touchend', end); addEventListener('touchcancel', () => { if (pulling) { pulling = false; y0 = null; reset(); } });
+})();
+function switchZone(id) {
+  if (id === 'all') {                       // All: show the zone with the most bulbs, send every change to each zone
+    if (allZones) return;
+    allZones = true; localStorage.setItem('allZones', '1');
+    const big = [...state.zones].sort((a, b) => bulbsIn(b) - bulbsIn(a))[0];
+    if (big.id !== zone) { zone = big.id; api('/api/state'); } else render(state);
+    return;
+  }
+  const was = allZones; allZones = false; localStorage.setItem('allZones', '0');
+  if (id !== zone) { zone = id; api('/api/state'); } else if (was) render(state);
+}
+function bulbsIn(z) { return z.strings.reduce((a, n) => a + (state.all_strings.find(x => x.name === n)?.bulbs || 0), 0); }
 $('#zone-switch').addEventListener('click', e => { const b = e.target.closest('[data-zone]'); if (b) switchZone(b.dataset.zone); });
 $('#assign').addEventListener('change', async e => {
   const sel = e.target.closest('select'); if (!sel || !sel.value) return;
@@ -1020,10 +1366,48 @@ $('#zone-add').addEventListener('submit', async e => {
   zone = null;
   if (await api('/api/zones/add', {name})) { $('#zone-add-name').value = ''; toast(`Added ${name}. Now choose its strings.`); }
 });
-$('#zone-delete').addEventListener('click', async () => {
-  const name = state.lights_name;
-  if (!confirm(`Delete ${name}? Its strings move to ${state.zones.find(z => z.id !== state.zone).name}.`)) return;
-  if (await api('/api/zones/delete', {})) toast(`Deleted ${name}`);
+// Your zones: rename or delete any zone from Setup. The page stays on the zone you were looking at.
+let zoneEditing = null;
+function renderZoneList(s) {
+  if (zoneEditing && document.activeElement?.closest('#zone-list form')) return;   // don't redraw under someone typing
+  $('#zone-list').innerHTML = s.zones.map(z => {
+    const n = z.strings.length, strs = n ? `${n} string${n > 1 ? 's' : ''}` : 'No strings yet';
+    if (zoneEditing === z.id) return `<li><form data-zone="${z.id}">
+        <label class="sr" for="zr-${z.id}">New name for ${esc(z.name)}</label>
+        <input id="zr-${z.id}" maxlength="40" value="${esc(z.name)}" required>
+        <button type="submit" class="btn1">Save</button><button type="button" class="btn2" data-act="cancel">Cancel</button>
+      </form></li>`;
+    return `<li data-zone="${z.id}"><span class="who">${esc(z.name)}<small>${strs}${z.id === s.zone ? ', shown here' : ''}</small></span>
+      <button type="button" class="btn2" data-act="rename" aria-label="Rename ${esc(z.name)}">Rename</button>
+      ${s.zones.length > 1 ? `<button type="button" class="btn2" data-act="delete" aria-label="Delete ${esc(z.name)}">Delete</button>` : '<span></span>'}</li>`;
+  }).join('');
+}
+async function zoneApi(id, path, body) {      // act on any zone, then come back to the one this page shows
+  const was = zone; zone = id;
+  const r = await api(path, body);
+  if (was !== id && state.zones.some(z => z.id === was)) { zone = was; await api('/api/state'); }
+  return r;
+}
+$('#zone-list').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const id = b.closest('[data-zone]').dataset.zone, z = state.zones.find(z => z.id === id);
+  if (b.dataset.act === 'rename') {
+    zoneEditing = id; renderZoneList(state);
+    const i = $('#zr-' + id); i.focus(); i.select();
+  } else if (b.dataset.act === 'cancel') {
+    zoneEditing = null; renderZoneList(state);
+  } else if (b.dataset.act === 'delete') {
+    const to = state.zones.find(x => x.id !== id);
+    if (!confirm(`Delete ${z.name}? ${z.strings.length ? `Its strings move to ${to.name}.` : ''}`)) return;
+    if (await zoneApi(id, '/api/zones/delete', {})) toast(`Deleted ${z.name}`);
+  }
+});
+$('#zone-list').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target, id = f.dataset.zone, name = f.querySelector('input').value.trim(); if (!name) return;
+  zoneEditing = null; document.activeElement?.blur();
+  if (await zoneApi(id, '/api/name', {name})) toast(`Renamed to ${name}`);
+  else renderZoneList(state);
 });
 
 // ---- Animate switch on still themes that also come animated ----
@@ -1039,30 +1423,103 @@ $('#shows').addEventListener('change', async e => {
   if (await api('/api/show', {show: b.dataset.play})) toast(`Playing ${name}${box.checked ? ', animated' : ''}`);
 });
 
-// The S-shaped wire from the end of each string, down under its bulbs, back to the start of the next.
-function joins() {
-  const rows = [...document.querySelectorAll('#hero .wire')];
-  if ($('#hero').classList.contains('oneline')) { rows.forEach(w => w.querySelector('.join')?.remove()); return; }
-  rows.forEach((w, i) => {
-    w.querySelector('.join')?.remove();
-    const next = rows[i + 1]; if (!next) return;
-    const a = w.getBoundingClientRect(), b = next.getBoundingClientRect();
-    const end = a.width + 10, start = b.left - a.left + 10;       // in the svg, which starts 10px left of the row
-    const drop = b.top - a.top;                                   // from this row's wire to the next one's
-    const run = drop - 9;                                         // the crossing, just above the next row's wire
-    const d = `M ${end - 2},1 C ${end + 10},1 ${end + 10},${run} ${end - 2},${run} L ${start + 2},${run} ` +
-              `C ${start - 10},${run} ${start - 10},${drop + 1} ${start + 2},${drop + 1}`;
-    w.insertAdjacentHTML('beforeend', `<svg class="join" width="${end + 20}" height="${drop + 4}" aria-hidden="true"><path d="${d}"/></svg>`);
+// ---- The house picture at the top: every string where it hangs (Setup > Bulbs, "Where each string hangs"),
+// each lit with its own zone's show. Rows run left to right as seen from the street; a string can follow the
+// one before it (end to end), sit between another string's bulbs (interlaced), or be flood lights placed
+// along the house. Each bulb shows what the engine sends it: zone frame index p (zone strings end to end),
+// mirrored when the zone starts at the right XOR the show is reversed. Purely a picture: shows don't use it.
+let house = {sig: '', zones: []};               // zones[zi] = {id, n, bulbs: [{el, p}]}
+const zonePv = {};                              // other zones' previews: {zoneId: {show, data}}
+function houseLayout(s) {
+  const H = s.house || {}, rows = [[], [], []], floods = [];
+  const by = Object.fromEntries(s.all_strings.map(x => [x.name, x]));
+  const slots = (x, p) => Array.from({length: x.bulbs}, (_, k) => ({name: x.name, j: p.flip ? x.bulbs - 1 - k : k}));
+  // End to end: a row's strings follow each other in order, as one run; if the row's first string has
+  // bulb 1 on the right, the whole run reads from the right (A's last bulb meets B's first further left).
+  [1, 2, 3].forEach(r => {
+    const xs = s.all_strings.filter(x => H[x.name]?.place === 'after' && H[x.name].row === r);
+    const run = xs.flatMap(x => slots(x, {flip: false}));
+    rows[r - 1].push(...(xs.length && H[xs[0].name].flip ? run.reverse() : run));
+  });
+  s.all_strings.forEach(x => {                  // between: one bulb after each bulb of the string it sits with
+    const p = H[x.name]; if (p?.place !== 'between') return;
+    const row = rows.find(r => r.some(b => b.name === p.with)) || rows[p.row - 1];
+    const mine = slots(x, p), at = row.map((b, i) => b.name === p.with ? i : -1).filter(i => i >= 0);
+    for (let k = at.length - 1; k >= 0; k--) if (k < mine.length) row.splice(at[k] + 1, 0, mine[k]);
+    if (mine.length > at.length) row.push(...mine.slice(at.length));
+  });
+  s.all_strings.forEach(x => { const p = H[x.name]; if (p?.place === 'flood') for (let j = 0; j < x.bulbs; j++) floods.push({name: x.name, j, x: p.spots[j]}); });
+  return {rows: rows.filter(r => r.length), floods};
+}
+function buildHouse(s) {
+  const hero = $('#hero'), lay = houseLayout(s), w = hero.parentElement.clientWidth || 360;
+  const per = Math.max(12, Math.floor(w / 11));  // bulbs per line before a row wraps (about 11px a bulb)
+  const zi = name => s.zones.findIndex(z => z.strings.includes(name));
+  const sig = JSON.stringify([lay, per, s.zones.map(z => [z.id, z.strings, z.direction])]);
+  if (house.sig !== sig) {
+    house.sig = sig;
+    const line = bs => `<div class="wire">${bs.map(b => `<span class="bulb" data-s="${esc(b.name)}" data-j="${b.j}"><i></i><b></b></span>`).join('')}</div>`;
+    const lines = lay.rows.flatMap(r => {          // wrap a long row into even lines, like text
+      const n = Math.ceil(r.length / per), len = Math.ceil(r.length / n);
+      return Array.from({length: n}, (_, k) => r.slice(k * len, k * len + len));
+    });
+    hero.innerHTML = lines.map(line).join('') + (lay.floods.length ? `<div class="floods">${lay.floods.map(f =>
+      `<span class="bulb flood" style="left:${f.x}%" data-s="${esc(f.name)}" data-j="${f.j}"><b></b></span>`).join('')}</div>` : '');
+    house.zones = s.zones.map(z => ({id: z.id, n: 0, bulbs: []}));
+    const off = {};                              // each string's first bulb within its zone's frame
+    s.zones.forEach((z, k) => z.strings.forEach(n => { off[n] = house.zones[k].n; house.zones[k].n += s.all_strings.find(x => x.name === n)?.bulbs || 0; }));
+    hero.querySelectorAll('.bulb').forEach(el => {
+      const k = zi(el.dataset.s);
+      if (k < 0) { el.style.setProperty('--c', '#303846'); el.classList.add('nozone'); return; }
+      house.zones[k].bulbs.push({el, p: off[el.dataset.s] + +el.dataset.j});
+      house.zones[k].f = '';
+    });
+  }
+  s.zones.forEach((z, k) => {                    // a zone that's off is drawn as unlit glass (see paintHouse)
+    house.zones[k]?.bulbs.forEach(({el}) => el.classList.toggle('off', !z.lit));
+    if (z.id !== s.zone && z.strings.length && zonePv[z.id]?.show !== z.show) {
+      zonePv[z.id] = {show: z.show, data: null};
+      fetch(`/api/previews?zone=${encodeURIComponent(z.id)}&show=${encodeURIComponent(z.show)}`).then(r => r.json())
+        .then(d => { if (zonePv[z.id]?.show === z.show) { zonePv[z.id].data = d; house.zones[k].f = ''; tick(); } }).catch(() => {});
+    }
   });
 }
-addEventListener('resize', () => {
-  // switch between one row and stacked rows when the window crosses the width that fits every bulb
-  const s = state, hero = $('#hero');
-  if (s && (s.total > 0 && hero.parentElement.clientWidth / s.total >= 14) !== hero.classList.contains('oneline')) { hero.dataset.sig = ''; render(s); }
-  else joins();
-});
+function paintHouse() {
+  const now = Date.now() / 1000 + clockOffset;
+  state.zones.forEach((z, k) => {
+    const hz = house.zones[k]; if (!hz || !hz.bulbs.length) return;
+    if (!z.lit) {                                // off: plain unlit bulbs, so lit and unlit read apart at a glance
+      if (hz.f !== 'off') { hz.f = 'off'; hz.bulbs.forEach(({el}) => el.style.setProperty('--c', '#3a4352')); }
+      return;
+    }
+    const pv = z.id === state.zone ? previews : zonePv[z.id]?.data;
+    const fr = frameAt(z.show, (now - (z.started ?? now)) * (z.speed || 1), false, pv); if (!fr) return;
+    const flip = (z.direction === 'right') !== !!z.reversed, key = `${z.show}:${fr[0]}:${flip}`;
+    if (hz.f === key) return; hz.f = key;
+    hz.bulbs.forEach(({el, p}) => {
+      const c = fr[1].substr((flip ? hz.n - 1 - p : p) * 6, 6);
+      el.style.setProperty('--c', !c || c === '000000' ? '#303846' : '#' + c);
+    });
+  });
+}
+addEventListener('resize', () => { if (state) buildHouse(state); });
 
+// In All mode these go to every zone, one after another; anything else (zones, customs, location) is shared.
+const ALL_PATHS = new Set(['/api/show', '/api/speed', '/api/brightness', '/api/power', '/api/reverse', '/api/schedule',
+                           '/api/follow', '/api/goal-delay', '/api/celebrate']);
 async function api(path, body) {
+  if (body && allZones && ALL_PATHS.has(path) && state?.zones.length > 1 && !('zone' in body)) {
+    let err = null;
+    for (const z of state.zones) {
+      try {
+        const r = await fetch(path, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({...body, zone: z.id})});
+        if (!r.ok) err = err || `${z.name}: ${(await r.json()).error || 'the Pi rejected that change.'}`;
+      } catch (e) { err = "Can't reach the Pi. Are you on the home Wi-Fi?"; break; }
+    }
+    const s = await api('/api/state');
+    if (err) { toast(err, true); return null; }
+    return s;
+  }
   try {
     if (!body && path === '/api/state') path += '?zone=' + encodeURIComponent(zone || '');
     const r = await fetch(path, body ? {method: 'POST', headers: {'Content-Type': 'application/json'},
@@ -1075,22 +1532,25 @@ async function api(path, body) {
   }
 }
 
-document.querySelector('.power').addEventListener('click', async e => {
-  const b = e.target.closest('button'); if (!b) return;
-  if (await api('/api/power', {mode: b.dataset.mode}))
-    toast({on: 'Lights on', off: 'Lights off', auto: 'Following the schedule'}[b.dataset.mode]);
+$('#to-schedule').addEventListener('click', async () => { if (await api('/api/power', {mode: 'auto'})) toast('Following the schedule'); });
+$('#zone-power').addEventListener('change', async e => {   // holds on or off until the schedule next agrees
+  const on = e.target.checked;
+  if (await api('/api/power', {mode: on ? 'on' : 'off'})) toast(on ? 'Lights on' : 'Lights off');
+  else e.target.checked = !on;
 });
 document.querySelector('.tabs[role=tablist]').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   tab = b.dataset.kind; showTab(); tick();
 });
+$('#test-shows').addEventListener('click', async e => {
+  const b = e.target.closest('.show'); if (!b || b.dataset.id === state?.show) return;
+  if (await api('/api/show', {show: b.dataset.id})) toast(`Playing ${b.querySelector('.name').textContent}`);
+});
 $('#shows').addEventListener('click', async e => {
-  const pn = e.target.closest('[data-playnow]');           // hockey: make a team's theme the regular show
-  if (pn) { if (await api('/api/show', {show: pn.dataset.playnow})) toast(`Playing ${state.teams.find(t => t.id === pn.dataset.playnow).name}`); return; }
-  const h = e.target.closest('.show[data-team]');          // hockey: tap to follow (or stop following) a team's games
+  const h = e.target.closest('[data-follow]');              // hockey: follow (or stop following) a team's games
   if (h) {
-    const t = state.teams.find(x => x.id === h.dataset.id), on = state.follow !== h.dataset.id;
-    if (await api('/api/follow', {team: on ? h.dataset.id : null}))
+    const t = state.teams.find(x => x.id === h.dataset.follow), on = state.follow !== h.dataset.follow;
+    if (await api('/api/follow', {team: on ? h.dataset.follow : null}))
       toast(on ? `Following the ${t.name}: its show takes over during games` : `Stopped following the ${t.name}`);
     return;
   }

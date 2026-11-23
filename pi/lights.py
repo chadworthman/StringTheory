@@ -33,7 +33,24 @@ try: _CFG = json.loads(CONFIG.read_text())
 except FileNotFoundError: _CFG = {}
 # Your strings, in the order they're laid out (each one's last bulb meets the next one's first):
 # (device name from devices.json, number of bulbs). Set them in config.json with configure.py.
-STRINGS = [(s['name'], int(s['bulbs'])) for s in _CFG.get('strings', [])] or [('C9 Lights', 24), ('C9 Lights 2', 24)]
+PHYSICAL = [(s['name'], int(s['bulbs'])) for s in _CFG.get('strings', [])] or [('C9 Lights', 24), ('C9 Lights 2', 24)]
+# Bulb layout (Setup > Bulbs on the page): each string's optional 'layout' in config.json, one code per bulb.
+# 'off' keeps a bulb dark and shows skip it (bulbs out of sight); 'join' shows the colour of the lit bulb
+# before it, so the two count as one (bulbs that run back around a corner). Shows only see the bulbs that
+# count: STRINGS holds those numbers, and each string's worker spreads its slice back over the real bulbs.
+LAYOUT_CODES = ('on', 'off', 'join')
+def bulb_map(layout, n):
+    """For each real bulb, its place among the string's bulbs that count (None = always off), and how many count."""
+    m, k = [], -1
+    for i in range(n):
+        c = layout[i] if i < len(layout) else 'on'
+        if c == 'off': m.append(None)
+        elif c == 'join' and k >= 0: m.append(k)
+        else: k += 1; m.append(k)
+    return m, k + 1
+LAYOUTS = {s['name']: list(s.get('layout') or []) for s in _CFG.get('strings', [])}
+MAPS = {name: bulb_map(LAYOUTS.get(name, []), n)[0] for name, n in PHYSICAL}
+STRINGS = [(name, max(1, bulb_map(LAYOUTS.get(name, []), n)[1])) for name, n in PHYSICAL]
 ORDER = [name for name, _ in STRINGS]
 # Shows are built for one run of bulbs. This module is that run for all the strings; each zone gets its
 # own copy of the module built for just its strings (see zone_module), so a show fills each zone.
@@ -78,7 +95,7 @@ def blend(a, b, t):
 def scanner(base, dot, step, span=TOTAL, trail=None, gap=2, mirror=None, tail=()):
     """All `base`, with one `dot` bouncing over the first `span` bulbs.
     Optional `trail` colour follows `gap` steps behind the dot (so it bounces too)."""
-    period = 2 * (span - 1)
+    period = max(1, 2 * (span - 1))          # a single bulb (one flood) just stays lit
     def where(k):
         k %= period
         return k if k < span else period - k
@@ -101,7 +118,7 @@ def converge(pattern, step):
     def show(t):
         off = int(t / step)
         left = [pattern[(p - off) % len(pattern)] for p in range(half)]
-        return left + left[::-1]
+        return left + [pattern[(half - off) % len(pattern)]] * (TOTAL % 2) + left[::-1]   # odd: one in the middle
     show.period = len(pattern) * step; show.step = step
     return show
 
@@ -184,6 +201,7 @@ def jostle(step=0.5, swaps=5, half=72, drift_every=3):
     for _ in range(half):
         p = list(perms[-1])
         for _ in range(swaps):
+            if TOTAL < 2: break
             i = rnd.randrange(TOTAL - 1); p[i], p[i + 1] = p[i + 1], p[i]
         perms.append(p)
     loop = 2 * half                          # also a multiple of TOTAL * drift_every, so the drift loops too
@@ -317,6 +335,8 @@ def hanukkah(step=0.4, loop=100):
         n = hanukkah_night() or 8
         bulbs = [unlit] * TOTAL
         def fl(i): return WHITE if random.Random(i * 97 + k * 7).random() < 0.6 else flame
+        if mid < 6:                                                        # too short for a menorah (floods): flames on blue
+            return [fl(i) if i % 2 == 0 else body for i in range(TOTAL)]
         for c, cand in enumerate(order):
             if c < n:
                 look = [body, PALE, None, PALE, body] if w == 5 else [body] * w
@@ -515,8 +535,8 @@ def sunflowers(step=0.5, period=24.0):
     """Sunflowers on a blue sky: here and there a flower opens (a gold centre, then yellow petals either
     side), holds, then folds back into the sky, each at its own time and place."""
     rnd = random.Random(380)
-    n = max(3, TOTAL // 8)
-    spots = sorted(rnd.sample(range(2, max(3, TOTAL - 2)), n))
+    pool = range(2, TOTAL - 2) if TOTAL > 6 else range(TOTAL)       # short zones (a pair of floods) use every bulb
+    spots = sorted(rnd.sample(pool, min(len(pool), max(3, TOTAL // 8))))
     flowers = [(x, rnd.random() * period) for x in spots]          # (where, when it starts opening)
     life = 8.0                                                      # seconds from bud to folded
     def show(t):
@@ -677,6 +697,16 @@ HOCKEY = {   # proportions follow each team's jersey, so teams that share colour
 BLUEWHITE = [BLUE] * 3 + [WHITE] * 3
 SILVERGOLD = [WHITE] * 3 + [GOLD] * 3
 HOLLY = [(0, 190, 20)] * 3 + [RED]                       # holly: three green leaves, one red berry
+# Grinch, from the user's palette (olive, yellow, green, lime, ochre) moved to what reads on these LEDs: the
+# muddy olive and ochre would show as plain yellow and orange, so it's Grinch green, yellow, lime and a deep gold,
+# with one red bulb after the yellow and one after the gold.
+# Solid colours: every bulb one colour, mostly as a background for a zone (such as strings interlaced with
+# another zone's). Picked to read true on these LEDs: warmer whites look pink, (255, 60, 0) reads red.
+WASHES = [('washred', 'Red', (255, 0, 0)), ('washorange', 'Orange', (255, 100, 0)), ('washgold', 'Gold', (255, 140, 0)),
+          ('washyellow', 'Yellow', (255, 180, 0)), ('washlime', 'Lime', (140, 255, 0)), ('washgreen', 'Green', (0, 255, 0)),
+          ('washpine', 'Pine green', (0, 255, 80)), ('washcyan', 'Ice blue', (0, 255, 255)), ('washblue', 'Blue', (0, 40, 255)),
+          ('washpurple', 'Purple', (190, 0, 255)), ('washpink', 'Pink', (255, 30, 90)), ('washwhite', 'White', (255, 255, 255))]
+GRINCH = [(0, 255, 80)] * 3 + [(255, 180, 0)] * 3 + [RED] + [(140, 255, 0)] * 3 + [(220, 110, 0)] * 3 + [RED]   # a red after yellow and after gold
 CANADA = [RED] * 3 + [WHITE] * 3
 VALENTINES = [RED] * 3 + [PINK] * 3 + [WHITE] * 3
 STPATS = [GREEN] * 3 + [GHOUL] * 3 + [GOLD] * 3
@@ -797,6 +827,8 @@ SHOWS = {
     'bluewhite': lambda t: tile(BLUEWHITE, TOTAL),
     'silvergold': lambda t: tile(SILVERGOLD, TOTAL),
     'holly':     lambda t: tile(HOLLY, TOTAL),
+    'grinch':    lambda t: tile(GRINCH, TOTAL),
+    **{k: (lambda c: lambda t: [c] * TOTAL)(c) for k, _, c in WASHES},   # solid colours
     'tree':      lambda t: tile(TREE, TOTAL),
     'peppermint': lambda t: tile([RED, WHITE], TOTAL),
     'aurora':    lambda t: AURORA,
@@ -810,6 +842,7 @@ SHOWS = {
     'bluewhitemove':  chase(BLUEWHITE, 0.6),
     'silvergoldmove': chase(SILVERGOLD, 0.6),
     'hollymove':      chase(HOLLY, 0.6),
+    'grinchmove':     chase(GRINCH, 0.6),
     'peppermintmove': chase([RED, RED, WHITE, WHITE], 0.6),    # single-bulb alternation only blinks when chased
     'canadamove':     chase(CANADA, 0.6),
     **{k + 'move': chase_flash(p) for k, p in HOCKEY.items()},
@@ -974,7 +1007,7 @@ def parse_rule(on, off):
 # state.json holds  zones: [{id, name, strings: [device names], show, speeds, brightness, override, on_at, off_at,
 # on_offset, off_offset, off_after}] plus customs, effect_names and location shared by every zone. Older single-zone state is read as one zone.
 ZONE_KEYS = ('show', 'speeds', 'brightness', 'override', 'on_at', 'off_at', 'on_offset', 'off_offset', 'off_after',
-             'follow', 'game_power', 'goal_delay', 'celebrate', 'skip_game', 'fade')
+             'follow', 'game_power', 'goal_delay', 'celebrate', 'skip_game', 'fade', 'direction', 'reversed')
 def zones_of(st):
     if st.get('zones'): return st['zones']
     z = {k: st[k] for k in ZONE_KEYS if k in st}
@@ -993,18 +1026,56 @@ def zone_strings(zone):
     """(name, bulbs) for the zone's strings, in physical order."""
     return [(n, b) for n, b in STRINGS if n in zone.get('strings', [])]
 _zone_modules = {}
+_module_count = 0
+def load_copy(zs):
+    """A fresh copy of this file, built for the strings zs. Reads the file again, so it has the latest shows."""
+    global _module_count
+    _module_count += 1
+    spec = importlib.util.spec_from_file_location(f'lights_zone_{_module_count}', __file__)
+    m = importlib.util.module_from_spec(spec)
+    m.__dict__['_ZONE_STRINGS'] = list(zs)
+    spec.loader.exec_module(m)
+    return m
+SMALL_ZONE = 6      # bulbs; a zone this short (a pair of floods) can't show a still pattern, so it steps through it
+PALETTE_HOLD = 3.0  # seconds each colour holds on a short zone
 def zone_module(zone):
-    """This module rebuilt for just the zone's strings, so shows span exactly that zone."""
-    zs = zone_strings(zone)
-    if not zs or zs == list(STRINGS) == list(ZONE_STRINGS): return sys.modules[__name__]
+    """This module rebuilt for just the zone's strings, so shows span exactly that zone. Always a copy loaded
+    from the file (never this module itself), so reload_shows() can swap in new shows without a restart."""
+    zs = zone_strings(zone) or list(STRINGS)
     key = tuple(zs)
     if key not in _zone_modules:
-        spec = importlib.util.spec_from_file_location(f'lights_zone_{len(_zone_modules)}', __file__)
-        m = importlib.util.module_from_spec(spec)
-        m.__dict__['_ZONE_STRINGS'] = list(zs)
-        spec.loader.exec_module(m)
+        m = load_copy(zs)
+        if m.TOTAL <= SMALL_ZONE: step_stills(m)
         _zone_modules[key] = m
     return _zone_modules[key]
+def step_stills(m):
+    """On a short zone, a still theme only ever shows its first colour or two. Play it instead as its whole
+    palette (every colour it uses on a full 48-bulb run) stepping along, one colour per PALETTE_HOLD seconds,
+    each bulb one colour ahead of the last, so a pair of floods shows all of a theme's colours in turn."""
+    if 'full' not in _zone_modules: _zone_modules['full'] = load_copy([('palette a', 24), ('palette b', 24)])
+    full = _zone_modules['full']
+    for k, fn in list(m.SHOWS.items()):
+        if getattr(fn, 'period', 0) or getattr(fn, 'builtin', None) is not None or getattr(fn, 'items', None): continue
+        if k not in full.SHOWS or k in ('confetti', 'allwhite'): continue
+        cols = []
+        for c in full.SHOWS[k](0):
+            if tuple(c) != OFF and tuple(c) not in cols: cols.append(tuple(c))
+        if len(cols) < 2: continue
+        def stepped(t, cols=cols, n=m.TOTAL):
+            k = int(t / PALETTE_HOLD)
+            return [cols[(k + i) % len(cols)] for i in range(n)]
+        stepped.period = len(cols) * PALETTE_HOLD; stepped.step = PALETTE_HOLD; stepped.still_palette = True
+        m.SHOWS[k] = stepped
+def code_mtime():
+    try: return Path(__file__).stat().st_mtime
+    except FileNotFoundError: return None
+def reload_shows():
+    """lights.py changed (a new or edited show): check the new file loads, then drop the cached zone copies so
+    the next zone_module() calls build from it. Raises if the new file is broken, keeping the old shows.
+    Only the shows change: the string workers, schedule and engine loop keep running the code they started
+    with, so edits to those still need a restart."""
+    load_copy(STRINGS)
+    _zone_modules.clear()
 
 MIN_STEP = 0.4      # seconds; faster than this per change and the strings start skipping frames
 SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3]
@@ -1055,7 +1126,13 @@ class Shared:
         self.party = None; self.party_t0 = 0      # a goal celebration playing over the show, and when it started
         self.fade = None                          # ('in' | 'out', started, seconds) while the schedule fades the lights
         self.game = None; self.game_show = None; self.game_t0 = 0   # game mode: the team's theme during its games
+        self.mirror = False; self.rev = False     # zone starts at the right; this show reversed (see run())
     def t(self, now): return (now - self.t0) * self.speed   # how far into the show we are, in show time
+
+LOCATE = None   # state.json 'locate': {string, bulb, until}, set by "Find it" in the page's bulb layout
+def config_mtime():
+    try: return CONFIG.stat().st_mtime
+    except FileNotFoundError: return None
 
 class String(threading.Thread):
     """One worker per string, so a string with flaky Wi-Fi can never stall the other."""
@@ -1064,6 +1141,9 @@ class String(threading.Thread):
         import tinytuya
         self.tinytuya = tinytuya; self.dev = dev; self.i = index; self.shared = shared
         self.offset, self.size = 0, SIZES[index]      # this string's place within its zone's run
+        m = MAPS.get(dev['name'])
+        self.map = None if m == list(range(len(m))) else m   # real bulb -> bulb the shows see (None = no layout)
+        self.bulbs = len(m)
         self.seen_shared = None
         self.c = None; self.busy_since = None; self.shown = None; self.last_send = 0; self.epoch = -1
         self.sent = 0; self.acked = 0; self.fails = 0
@@ -1109,10 +1189,22 @@ class String(threading.Thread):
                 if r and isinstance(r, dict) and 'dps' in r:
                     self.busy_since = None; self.acked += 1; self.recent_acked.append(time.time()); self.heard(r, time.time())
                 now = time.time(); sh = self.shared
+                if self.last_send - (self.last_ack or 0) > 10 and now - self.last_send < 5:
+                    # still sending but nothing back for 10 s: the controller has quietly dropped the session
+                    # (seen on the AL252 floods after being switched off and on), so connect again
+                    raise ConnectionError('no replies for 10 s')
                 if self.epoch != sh.epoch or self.seen_shared is not sh:
                     self.epoch = sh.epoch; self.seen_shared = sh; self.shown = None
                 if self.busy_since is not None and now - self.busy_since < 3:
                     continue                 # receive() above already waited ~10 ms
+                lo = LOCATE                  # "Find it" on the page: one real bulb white, the rest dark
+                if lo and lo.get('string') == self.name and now < lo.get('until', 0):
+                    key = ('find', lo.get('bulb'))
+                    if self.shown != key:
+                        if self.shown in (None, 'off'): self.send(DP_SWITCH, True, now)
+                        self.send(DP_PAINT, frame([WHITE if i == lo.get('bulb') else OFF for i in range(self.bulbs)]), now)
+                        self.shown = key
+                    continue
                 party = sh.party
                 builtin = None if party or sh.game_show else getattr(sh.show, 'builtin', None)
                 if sh.power and builtin is not None:
@@ -1126,7 +1218,9 @@ class String(threading.Thread):
                         self.send(DP_EFFECT, base64.b64encode(dim_effect(builtin, sh.bright)).decode(), now); self.shown = builtin
                 elif sh.power:
                     cur = party(now - sh.party_t0) if party else sh.game_show(now - sh.game_t0) if sh.game_show else sh.show(sh.t(now))
+                    if sh.mirror != (sh.rev and not party and not sh.game_show): cur = cur[::-1]
                     part = dim(cur[self.offset:self.offset + self.size], sh.bright * fade_level(sh.fade, now))
+                    if self.map: part = [OFF if j is None else part[j] for j in self.map]
                     # resend unchanged frames every 30 s so a string that missed one recovers
                     if part != self.shown or now - self.last_send > 30:
                         if self.shown is None: self.send(DP_SWITCH, True, now)
@@ -1222,6 +1316,7 @@ def celebrate(sh, now, why):
     log(f'{sh.name}: celebrating ({why})')
 
 def run():
+    global LOCATE
     if not DEVICES.exists():
         sys.exit(f'No {DEVICES}. Run the tinytuya wizard (see the README) and put devices.json there.')
     devs = {d['name']: d for d in json.loads(DEVICES.read_text())}
@@ -1231,7 +1326,7 @@ def run():
     idle = Shared(); idle.power = False                  # strings that aren't in any zone stay off
     strings = [String(devs[name], i, idle) for i, name in enumerate(ORDER)]
     zones = {}                                           # zone id -> Shared (with .cur = what it's playing)
-    state_mtime = None
+    state_mtime = None; config_at = config_mtime(); code_at = code_mtime(); gen = 0   # gen: which load of the shows
     log('started')
     for s in strings: s.start()
     watcher = HockeyWatcher(zones); watcher.start()
@@ -1244,10 +1339,21 @@ def run():
         tmp.replace(ENGINE)
     while True:
         now = time.time(); write_engine = False
+        if config_mtime() != config_at:                  # strings or bulb layout changed: start again with them
+            log('config.json changed, restarting'); time.sleep(0.5)
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        if code_mtime() != code_at:                      # lights.py changed: load its shows, no restart
+            code_at = code_mtime()
+            try:
+                reload_shows(); gen += 1; state_mtime = None   # re-pick every zone's show from the new copy
+                log('lights.py changed: shows reloaded (engine changes still need a restart)')
+            except Exception as e:
+                log(f'lights.py changed but has an error, keeping the old shows: {e!r}')
         try:                                             # pick up changes from the page or the CLI
             m = STATE.stat().st_mtime
             if m != state_mtime:
                 state_mtime = m; state = load_state()
+                LOCATE = state.get('locate')
                 seen = set()
                 for z in zones_of(state):
                     if not zone_strings(z): continue
@@ -1272,11 +1378,20 @@ def run():
                     sig = (key, custom, tuple(z['strings']), fo)
                     if sig != sh.cur:                    # new show (or edited custom show): start from the top
                         zm.CONFETTI = random.sample(zm.RAINBOW, zm.TOTAL)
-                        sh.cur = sig; sh.show = fn; sh.t0, sh.speed = now, speed; sh.epoch += 1
+                        sh.cur = sig; sh.show = fn; sh.t0, sh.speed = now, speed; sh.epoch += 1; sh.gen = gen
                         log(f'{sh.name}: show =', key, f'at {speed}x')
-                    elif speed != sh.speed:              # same show, new speed: carry on from where it is
-                        sh.t0 = now - sh.t(now) / speed; sh.speed = speed; sh.epoch += 1
-                        log(f'{sh.name}: speed =', f'{speed}x')
+                    else:
+                        if getattr(sh, 'gen', 0) != gen:     # shows reloaded: the same show, as now written, from where it is
+                            sh.show = fn; sh.gen = gen; sh.epoch += 1
+                        if speed != sh.speed:            # same show, new speed: carry on from where it is
+                            sh.t0 = now - sh.t(now) / speed; sh.speed = speed; sh.epoch += 1
+                            log(f'{sh.name}: speed =', f'{speed}x')
+                    # Direction: a zone whose first bulb is at the right-hand end (seen from the street) plays
+                    # every frame mirrored, so the lights move the way the page draws them; Reverse flips one show.
+                    flip = (view.get('direction') == 'right', bool(view.get('reversed', {}).get(key)))
+                    if flip != (sh.mirror, sh.rev):
+                        sh.mirror, sh.rev = flip; sh.epoch += 1
+                        log(f'{sh.name}: starts at the {"right" if sh.mirror else "left"}' + (', show reversed' if sh.rev else ''))
                     bright = brightness_of(view)
                     if bright != sh.bright:              # resend at the new brightness (built-in effects restart)
                         sh.bright = bright; sh.epoch += 1

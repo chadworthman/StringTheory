@@ -11,6 +11,13 @@ CLAUDE.local.md
 state.json
 engine.json
 health.json
+hockey.json
+scan.json
+# The login for outside access (a password hash)
+auth.json
+*.scantmp
+# Backups made while changing devices.json or config.json
+*.bak-*
 *.tmp
 *.htmp
 

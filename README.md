@@ -18,20 +18,22 @@ It isn't affiliated with Tuya, NOMA or any other brand.
 **Website and live demo:** [stringtheory.space.fast](https://stringtheory.space.fast/). The demo is the real app with pretend lights.
 
 <p align="center">
-  <img src="docs/screen-now.png" width="190" alt="Now: live bulbs for each string, string status, what's playing, power and speed">
-  <img src="docs/screen-shows.png" width="190" alt="Shows: filter chips for Still, Moving, Playlists, Yours and Tests, with a live preview card for each show">
+  <img src="docs/screen-now.png" width="190" alt="Now: the house picture of live bulbs, an on/off switch, string status and what's playing">
+  <img src="docs/screen-shows.png" width="190" alt="Shows: chips for Themes, Hockey, Playlists and Yours, with a live preview card for each show">
   <img src="docs/screen-create.png" width="190" alt="Create: pick colours, bulbs per colour and an effect, or build a playlist">
-  <img src="docs/screen-setup.png" width="190" alt="Setup: schedule, zones and help">
+  <img src="docs/screen-setup.png" width="190" alt="Setup: chips for Schedule, Bulbs, Zones and Help, with where each string hangs">
 </p>
 
 The app has four screens, picked from the bar along the bottom:
 
-- **Now:** what's on, and the everyday controls (power, speed, and Change show).
-- **Shows:** everything you can play.
+- **Now:** what's on, and the everyday controls (speed, brightness, and Change show). While you follow a hockey team, it also shows the next game or the live score.
+- **Shows:** everything you can play, in tabs: Themes, Hockey, Playlists and Yours.
 - **Create:** make your own patterns and playlists.
-- **Setup:** schedule, zones and help.
+- **Setup:** schedule (set times or around sunset and sunrise, with optional fades), bulbs (layout and test patterns), zones (including **Find new lights**) and help.
 
-The rows of bulbs at the top (one per string) mirror what the strings are showing right now. They stay in view as you scroll on every screen. When the lights are off they show the current show dimmed, with no glow. Every row runs left to right like the real strings, and an S-shaped wire runs from the end of each string back to the start of the next, like wrapped text. Each show's card plays a preview of the show as the lights will show it; playlist cards play sped up (a few seconds per theme) so you can see the whole thing without waiting. Tap **Rename** to give your lights their own name.
+The zone row under the logo picks a zone, or **All** to change every zone at once, and its switch turns the lights on or off until the schedule next agrees.
+
+The rows of bulbs at the top (one per string) mirror what the strings are showing right now. They stay in view as you scroll on every screen. When the lights are off they show the current show dimmed, with no glow. When there's room, such as on a tablet or computer, every string goes on one continuous row. Every row runs left to right like the real strings, and an S-shaped wire runs from the end of each string back to the start of the next, like wrapped text. Each show's card plays a preview of the show as the lights will show it; playlist cards play sped up (a few seconds per theme) so you can see the whole thing without waiting. Rename zones under **Zones** on Setup.
 
 ## Hardware
 
@@ -120,7 +122,7 @@ python3 pi/configure.py
 
 It lists your devices and asks which are light strings, in the order they're laid out, and how many bulbs each has. It saves your answers to `data/config.json`. The last bulb of each string should meet the first bulb of the next. Every show stretches to the total length, and each string gets its own worker, so a string with poor Wi-Fi doesn't slow the others.
 
-After you start String Theory, play **Find the seams** on the Tests tab: each string glows in its own colour, its first bulb blinks white and its last is bright. If two strings are the wrong way round, run `configure.py` again and swap them.
+After you start String Theory, play **Find the seams** (Setup, Bulbs, under Test patterns): each string glows in its own colour, its first bulb blinks white and its last is bright. If two strings are the wrong way round, run `configure.py` again and swap them.
 
 ### 3. Choose where it runs
 
@@ -186,7 +188,7 @@ The page has no login. Keep it on your home network: if your firewall is on, all
 
 ## Using it
 
-**Shows** has filter chips for **Still**, **Moving**, **Playlists**, **Yours** (patterns you've saved) and **Tests**. Every still theme has an **Animate** switch on its card. Turning it on plays that theme animated, and picking another card turns it off again. Most themes chase their stripes; a few have their own animation (Christmas tree's ornaments twinkle, Sunset flows out from the centre, Aurora colours breathe, Confetti jostles). The Moving chip is for shows that are an animation of their own. Within each, shows are grouped (Christmas, Winter, Holidays in calendar order, Colour, and so on). The app remembers the screen and chip you last used. **Help** (`/help`, on Setup) explains the app and lists every show A to Z, with a Play button for each. You can also control everything from a shell on the Pi:
+**Shows** has filter chips for **Themes**, **Hockey**, **Playlists** and **Yours** (patterns you've saved). Themes are grouped by occasion (Christmas, Winter, Holidays in calendar order, Colour, and so on). Every still theme has an **Animate** switch on its card. Turning it on plays that theme animated, and picking another card turns it off again. Most themes chase their stripes; a few have their own animation (Christmas tree's ornaments twinkle, Sunset flows out from the centre, Aurora colours breathe, Confetti jostles). Shows that are an animation of their own sit among the themes without a switch. On a zone of just a few lights, such as a pair of flood lights, still themes step through all their colours (two bulbs can't show a pattern), and each card has a bar of the show's colours. The test patterns are under **Bulbs** on Setup. The app remembers the screen and chip you last used. **Help** (`/help`, on Setup) explains the app and lists every show A to Z, with a Play button for each. You can also control everything from a shell on the Pi:
 
 ```sh
 lights status                  # current show, power and schedule
@@ -237,7 +239,7 @@ Still themes: Classic, Holly (three green leaves and a red berry), Candy cane, R
 
 Hockey: all 32 NHL teams have their own tab, each in a pattern based on its jersey (black is an unlit bulb). String Theory isn't affiliated with the NHL or any team.
 
-**Follow a team.** Your regular show, picked from any other tab, plays as usual. On the Hockey tab, tap a team to follow it (the card shows **Following**; tap again to stop). During every one of its games, from 15 minutes before puck drop until the final horn, the lights switch to the team's stripes chasing along; with **Turn the lights on for games** (on by default) they come on even outside your schedule. Each goal plays a celebration: a red goal light sweeping back and forth, then the team's colours flashing, about 10 seconds in all. After the game the lights go back to your regular show. Pick another show mid-game to take the lights back until the next game. The Hockey tab also has a **Goal delay**, to line the celebration up with your TV (broadcasts and streams usually run 10 to 60 seconds behind live), and **Test celebration**. **Play now** on a card makes that team your regular show.
+**Follow a team.** Your regular show, picked from any other tab, plays as usual. On the Hockey tab, tap **Follow games** on a team (the card shows **Following**; tap again to stop). Tapping the card itself just plays the team's colours, and its **Animate** switch chases them along. During every one of its games, from 15 minutes before puck drop until the final horn, the lights switch to the team's stripes chasing along; with **Turn the lights on for games** (on by default) they come on even outside your schedule. Each goal plays a celebration: a red goal light sweeping back and forth, then the team's colours flashing, about 10 seconds in all. After the game the lights go back to your regular show. Pick another show mid-game to take the lights back until the next game. The Hockey tab also has a **Goal delay**, to line the celebration up with your TV (broadcasts and streams usually run 10 to 60 seconds behind live), and **Test celebration**. To follow a team in every zone, pick **All** in the zone row first.
 
 This is the only part of String Theory that uses the internet, and only while you follow a team. It reads the NHL's public live-score service (`api-web.nhle.com`, the one the NHL's own website uses), which needs no account: the team's schedule a few times a day, the game every 30 seconds from 15 minutes before puck drop, and every 5 seconds while it's live. That service isn't an official, documented API, so it could change without notice.
 
@@ -267,14 +269,27 @@ The effects come in two groups:
 
 The apps don't show clearly what each built-in effect does, and the controller only knows them by number. The editor lists them as Effect 0 to 31. Try each one, then type what it looks like into the box. The name is saved, and from then on it appears in the list.
 
+### Bulbs
+
+**Which end it starts at** (under **Zones** on Setup): if your first bulb is at the right-hand end seen from the street, choose **Right end**. Every show in that zone is then mirrored, so the lights move the way the page draws them. To run just one moving show the other way, use **Reverse direction** under Speed on Now; each show remembers it.
+
+Roofs aren't straight. Under **Bulbs** on Setup, each string's bulbs appear as numbers. Tap one to:
+- **Off:** it stays dark and shows skip it. Use this for bulbs hanging out of sight, such as the end of a string that runs down a side wall.
+- **Join previous:** it shows the same colour as the bulb before it, and shows count the two as one. Use this where the eave steps in or out and a few bulbs run back toward the house, so a chase doesn't seem to stall at the corner.
+- **Find it on the string:** lights just that bulb white for 20 seconds.
+
+Shows then run along the bulbs that are left, and the page's bulbs show the same. The layout is saved in `data/config.json` with each string, and saving restarts the lights for a few seconds. `configure.py` keeps it unless you change that string's number of bulbs.
+
 ### Zones
 
 A **zone** is a group of strings with its own name, show, speed, power and schedule. For example, the porch can play Candy cane while the garage plays Icy, each on its own timetable. Set them up under **Zones** on the Setup screen:
 - Add a zone.
 - Pick each string's zone.
 - Rename or delete zones.
+- Say which end each zone starts at.
+- **Find new lights:** after adding lights in the Smart Life app, find them here and add each as a string. This needs your Tuya cloud details (`tinytuya.json`, from step 1 of Setup) in the data folder, and takes about a minute.
 
-When there's more than one zone, buttons under the logo switch between them. Each zone's shows span just its own strings, so a rainbow fills the whole zone. Saved patterns and playlists work in every zone.
+When there's more than one zone, buttons under the logo switch between them, and **All** changes every zone at once (show, power, speed, brightness, schedule and hockey). Each zone's shows span just its own strings, so a rainbow fills the whole zone. Saved patterns and playlists work in every zone.
 
 From a shell, `lights --zone Garage icy` (or `on`, `off`, `auto`, `schedule`) acts on a named zone. Without `--zone` it acts on the first zone.
 
@@ -333,7 +348,7 @@ If you get another brand working, you're welcome to share its model and DP numbe
 
 ### Adding a show
 
-A show is a function from time in seconds to a list of `TOTAL` `(r, g, b)` colours, one per bulb across all strings. Add it to `SHOWS` in `pi/lights.py`, using the builders there (`chase`, `converge`, `scanner`, `playlist`, …), and give it a friendly name in `SHOW_INFO` in `pi/web.py`. A show goes on the Moving or Still tab depending on whether it has a `period`. To put it on the Tests tab instead, add it to `TESTS` in `web.py`.
+A show is a function from time in seconds to a list of `TOTAL` `(r, g, b)` colours, one per bulb across all strings. Add it to `SHOWS` in `pi/lights.py`, using the builders there (`chase`, `converge`, `scanner`, `playlist`, …), and give it a friendly name in `SHOW_INFO` in `pi/web.py`. It goes on the Themes tab, in the group you give it in `GROUPS`. To make it a test pattern instead (shown under Bulbs on Setup), add it to `TESTS` in `web.py`.
 
 If it moves, the function needs a `period` (seconds before it repeats) and a `step` (shortest time between changes). The builders set these for you. Without them the page can't animate the preview or offer a speed setting.
 

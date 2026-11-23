@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#12161d">
+<meta name="theme-color" content="#1c222c">
 <title>String Theory: light shows for NOMA/Tuya smart light strings</title>
 <meta name="description" content="Run your NOMA/Tuya smart light strings as one long string, with shows for every season, playlists, schedules and a phone app. Free software you run on your own home computer or Raspberry Pi. Not a hosted service.">
 <link rel="canonical" href="https://stringtheory.space.fast/">
@@ -34,7 +34,7 @@
 <style>
   @font-face { font-family: "Pacifico"; src: url("/fonts/pacifico.woff2") format("woff2"); font-display: block; }
   :root {
-    --night: #12161d; --panel: #1b212b; --edge: #2b3442; --text: #eef1f5; --muted: #a3adbb;
+    --night: #1c222c; --panel: #262e3a; --edge: #38424f; --text: #eef1f5; --muted: #b2bcc8;
     --amber: #ffbe55; --alert: #e5483f; color-scheme: dark;
   }
   * { box-sizing: border-box; }
@@ -120,7 +120,7 @@
     <div class="string" id="string" aria-hidden="true"></div>
     <p class="playing" id="playing" aria-live="off"></p>
     <div class="ctas">
-      <a class="btn primary" href="/demo/#still">Try the live demo</a>
+      <a class="btn primary" href="/demo/#themes">Try the live demo</a>
       <a class="btn secondary" href="#get">Get String Theory</a>
     </div>
   </div>
@@ -135,15 +135,17 @@
         <div class="feature"><div class="dots" style="color:#ff2a1a"><span></span><span></span><span></span><span style="color:#2bd94a"></span><span style="color:#2bd94a"></span></div>
           <h3>One long string</h3><p>Lay strings end to end and every show runs across all of them, with chases flowing from one string into the next. Use as many strings as you like.</p></div>
         <div class="feature"><div class="dots" style="color:#ffc21a"><span></span><span style="color:#2b5cff"></span><span style="color:#ff7a1a"></span><span style="color:#2bd94a"></span><span style="color:#ff2a1a"></span></div>
-          <h3>Shows for every season</h3><p>Valentine's Day, St. Patrick's Day, Easter, Canada Day and Fourth of July fireworks, Halloween, Hanukkah, Christmas and New Year's Eve, plus rainbows, sunsets, aurora colours, embers, Fibonacci and more. Most still themes can animate too.</p></div>
+          <h3>Shows for every season</h3><p>Valentine's Day, St. Patrick's Day, Easter, Canada Day and Fourth of July fireworks, Halloween, Hanukkah, Christmas and New Year's Eve, plus rainbows, a sunrise and sunset, aurora colours, Slava Ukraini, embers, Fibonacci and more. Most still themes can animate too.</p></div>
         <div class="feature"><div class="dots" style="color:#2bd94a"><span></span><span style="color:#ffffff"></span><span style="color:#ff2a1a"></span><span style="color:#ffffff"></span><span></span></div>
           <h3>Make your own</h3><p>Pick colours and an effect to make a pattern, or build a playlist that switches between themes with chases, fades or quick changes.</p></div>
         <div class="feature"><div class="dots" style="color:#ff7a1a"><span></span><span></span><span style="color:#be00ff"></span><span style="color:#be00ff"></span><span style="color:#005a0a"></span></div>
-          <h3>Schedules and zones</h3><p>Lights come on and off on their own every day. Group strings into zones, such as the porch and the garage, each with its own show and timetable. Holiday autopilot picks the show by date.</p></div>
+          <h3>Schedules and zones</h3><p>Lights come on around sunset, or at set times, and can fade in and out. Group strings into zones, such as the porch and the garage, each with its own show and timetable, or change them all at once. Holiday autopilot picks the show by date.</p></div>
+        <div class="feature"><div class="dots" style="color:#ff2a1a"><span></span><span style="color:#3c3c3c"></span><span></span><span style="color:#3c3c3c"></span><span></span></div>
+          <h3>Hockey nights</h3><p>All 32 NHL teams in their colours. Follow yours and, during its games, the lights switch to the team's colours and every goal sets off a red goal light, then they go back to your show.</p></div>
         <div class="feature"><div class="dots" style="color:#eef1f5"><span></span><span></span><span></span><span></span><span></span></div>
-          <h3>A real app on your phone</h3><p>Add it to your home screen. The bulbs at the top show what your lights are doing right now, and every show's card plays a preview.</p></div>
+          <h3>A real app on your phone</h3><p>Add it to your home screen. The bulbs at the top are a picture of your house, with every string where it hangs (even strings woven between each other, and flood lights) showing what it's doing right now. Every show's card plays a preview.</p></div>
         <div class="feature"><div class="dots" style="color:#2b5cff"><span></span><span style="color:#50c8ff"></span><span style="color:#ffffff"></span><span style="color:#50c8ff"></span><span></span></div>
-          <h3>Runs in your home</h3><p>Not a hosted service: you run it on your own Pi or home computer. It talks to your lights over your home Wi-Fi, with no cloud or account, and the app only works on your network.</p></div>
+          <h3>Runs in your home</h3><p>Not a hosted service: you run it on your own Pi or home computer. It talks to your lights over your home Wi-Fi, with no cloud or account, and the app works on your network (or, if you choose, through a tunnel with a password). Only following a hockey team goes online, to read the NHL's public live scores.</p></div>
       </div>
     </div>
   </section>
@@ -154,14 +156,15 @@
         <h2>Try it now</h2>
         <p class="lede">The demo is the real app, with pretend lights. Everything works except lighting actual bulbs:</p>
         <ul>
-          <li><strong>Shows:</strong> browse every show and watch its preview. Flip <strong>Animate</strong> on still themes.</li>
+          <li><strong>Shows:</strong> browse every show and watch its preview. Flip <strong>Animate</strong> on a theme, pick a solid colour, and see all 32 NHL teams on the Hockey tab.</li>
           <li><strong>Create:</strong> make a pattern from your own colours, or build a playlist.</li>
-          <li><strong>Now:</strong> the bulbs at the top play whatever you pick. Try the power buttons and the speed slider.</li>
+          <li><strong>Now:</strong> the bulbs at the top play whatever you pick. Try the on/off switch and the speed slider.</li>
+          <li><strong>Setup:</strong> say where each string hangs and watch the picture at the top change.</li>
         </ul>
         <p class="lede">Anything you make is saved in your browser only.</p>
-        <a class="btn primary" href="/demo/#still">Open the demo</a>
+        <a class="btn primary" href="/demo/#themes">Open the demo</a>
       </div>
-      <div class="phone"><iframe src="/demo/#still" title="String Theory demo app" loading="lazy"></iframe></div>
+      <div class="phone"><iframe src="/demo/#themes" title="String Theory demo app" loading="lazy"></iframe></div>
     </div>
   </section>
 
@@ -211,7 +214,7 @@
 <script>
 // The hero string plays real String Theory shows, from the same previews the demo app uses.
 (async () => {
-  const SHOWS = ['rainbowmove', 'fourthmove', 'sunsetmove', 'eastermove', 'halloween', 'candycane', 'auroramove', 'fibonacci', 'stpatsmove', 'embers', 'treetwinkle', 'jostle'];
+  const SHOWS = ['rainbowmove', 'fourthmove', 'sunrise', 'eastermove', 'halloween', 'candycane', 'auroramove', 'ukraine', 'fibonacci', 'stpatsmove', 'embers', 'treetwinkle', 'jostle'];
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let data;
   try { data = await (await fetch('/demo/data.json')).json(); } catch { return; }

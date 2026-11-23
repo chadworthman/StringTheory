@@ -28,7 +28,7 @@ DEFAULT_NAME = 'My lights'
 # browser won't share a precise position, which is always the case on a plain-http page like this one.
 TZ_COORDS = json.loads((Path(__file__).resolve().parent / 'tz_coords.json').read_text())
 def local_timezone():
-    """This computer's time zone name, e.g. 'America/St_Johns', if it can be found."""
+    """This computer's time zone name, e.g. 'America/Toronto', if it can be found."""
     if os.environ.get('TZ') in TZ_COORDS: return os.environ['TZ']
     try: return Path('/etc/timezone').read_text().strip()
     except OSError: pass
@@ -37,6 +37,7 @@ def local_timezone():
 
 # Friendly names and one-line descriptions, in the order they appear on the page.
 SHOW_INFO = [
+    *[(k, n, f'Every bulb {n.lower()}: a background for another zone, or a wash on its own.') for k, n, _ in L.WASHES],
     ('classicloop',  'Classic loop',     ''),
     ('medley',       'Christmas medley', ''),
     ('winter',       'Winter night',     ''),
@@ -79,6 +80,7 @@ SHOW_INFO = [
     ('goldenangle',  'Golden angle',     'Each bulb turns 137.5° round the colour wheel from the last, like seeds in a sunflower.'),
     ('redgreen',     'Red & green',      'Red and green stripes, three bulbs each.'),
     ('holly',        'Holly',            'Three green leaves and a red berry, over and over.'),
+    ('grinch',       'Grinch',           'Grinch green, yellow, lime and gold stripes, with a red bulb after the yellow and after the gold.'),
     ('tree',         'Christmas tree',   'Green with red, gold and blue ornaments.'),
     ('peppermint',   'Peppermint',       'Red and white, every other bulb.'),
     ('bluewhite',    'Blue & white',     'Blue and white stripes, three bulbs each.'),
@@ -91,6 +93,7 @@ SHOW_INFO = [
     ('canada',       'Canada Day',       'Red and white bands.'),
     ('redgreenmove', 'Red & green (moving)', 'Red and green stripes chasing along.'),
     ('hollymove',    'Holly (moving)',   'Holly leaves and berries chasing along.'),
+    ('grinchmove',   'Grinch (moving)',  'Grinch green, yellow, lime and gold stripes with red bulbs between, chasing along.'),
     ('peppermintmove', 'Peppermint (moving)', 'Red and white stripes chasing along.'),
     ('bluewhitemove', 'Blue & white (moving)', 'Blue and white stripes chasing along.'),
     ('silvergoldmove', 'Silver & gold (moving)', 'White and gold stripes chasing along.'),
@@ -175,8 +178,8 @@ NOT_IN_PLAYLISTS = {'seasonal', 'seams', 'walk', 'strings', 'quad'} | set(L.PLAY
 # How each tab is organised: groups in order, shows in order within each group. Holidays follow
 # the calendar. Every show in SHOW_INFO must appear here exactly once.
 GROUPS = [
-    ('Christmas', ['classic', 'redgreen', 'tree', 'holly', 'candystill', 'peppermint', 'silvergold',
-                   'redgreenmove', 'hollymove', 'peppermintmove', 'silvergoldmove',
+    ('Christmas', ['classic', 'redgreen', 'tree', 'holly', 'grinch', 'candystill', 'peppermint', 'silvergold',
+                   'redgreenmove', 'hollymove', 'grinchmove', 'peppermintmove', 'silvergoldmove',
                    'chase5', 'classicwhite', 'candycane', 'treetwinkle', 'xmas', 'redscan', 'whitescan', 'marquee',
                    'classicloop', 'medley']),
     ('Winter', ['bluewhite', 'aurora', 'icy', 'snowfall', 'auroramove', 'bluewhitemove']),
@@ -187,6 +190,7 @@ GROUPS = [
     ('Colour', ['rainbow', 'double', 'confetti', 'goldenangle', 'goldenanglemove', 'sunset', 'sunrise',
                 'rainbowmove', 'doublemove', 'jostle', 'sunsetmove', 'fibonacci', 'ukraine', 'embers', 'chaos']),
     ('Just for fun', ['rainbows', 'party']),
+    ('Solid colours', [k for k, _, _ in L.WASHES]),
     ('Hockey', ['ducks', 'ducksmove', 'bruins', 'bruinsmove', 'sabres', 'sabresmove', 'flames', 'flamesmove', 'hurricanes', 'hurricanesmove', 'blackhawks', 'blackhawksmove', 'avalanche', 'avalanchemove', 'bluejackets', 'bluejacketsmove', 'stars', 'starsmove', 'redwings', 'redwingsmove', 'oilers', 'oilersmove', 'panthers', 'panthersmove', 'kings', 'kingsmove', 'wild', 'wildmove', 'canadiens', 'canadiensmove', 'predators', 'predatorsmove', 'devils', 'devilsmove', 'islanders', 'islandersmove', 'rangers', 'rangersmove', 'senators', 'senatorsmove', 'flyers', 'flyersmove', 'penguins', 'penguinsmove', 'sharks', 'sharksmove', 'kraken', 'krakenmove', 'blues', 'bluesmove', 'lightning', 'lightningmove', 'leafs', 'leafsmove', 'mammoth', 'mammothmove', 'canucks', 'canucksmove', 'goldenknights', 'goldenknightsmove', 'capitals', 'capitalsmove', 'jets', 'jetsmove']),
     ('Tests', ['seams', 'walk', 'strings', 'allwhite', 'quad']),
 ]
@@ -206,11 +210,13 @@ MOVING_OF = {'classic': 'chase5', 'tree': 'treetwinkle', 'candystill': 'candycan
              'double': 'doublemove', 'confetti': 'jostle', 'aurora': 'auroramove', 'sunset': 'sunsetmove',
              'easter': 'eastermove', 'stpats': 'stpatsmove',
              # the rest simply chase their stripes
-             'redgreen': 'redgreenmove', 'bluewhite': 'bluewhitemove', 'silvergold': 'silvergoldmove', 'holly': 'hollymove',
+             'redgreen': 'redgreenmove', 'bluewhite': 'bluewhitemove', 'silvergold': 'silvergoldmove', 'holly': 'hollymove', 'grinch': 'grinchmove',
              'peppermint': 'peppermintmove', 'canada': 'canadamove', 'valentines': 'valentinesmove', 'fourth': 'fourthchase',
-             'goldenangle': 'goldenanglemove'}
+             'goldenangle': 'goldenanglemove',
+             **{k: k + 'move' for k in L.NHL_TEAM}}   # hockey: Animate plays the team's chase
 VARIANTS = set(MOVING_OF.values()) | {k + 'move' for k in L.NHL_TEAM}   # hockey moves: game mode and playlists only
 
+FIND_SECS = 20   # how long "Find it" lights a bulb
 TESTS = {'seams', 'walk', 'strings', 'allwhite', 'quad'}   # shown on the page's Tests tab
 
 DAYS = {'hanukkah': 'Hanukkah', 'newyear': "New Year's", 'valentines': "Valentine's Day", 'stpats': "St. Patrick's Day",
@@ -245,11 +251,70 @@ def timeline(key, st=None, zm=L):
         _timelines[ck] = {'period': period, 'frames': frames}
     return _timelines[ck]
 
+SMALL_ZONE = 6   # zones this short (a pair of floods) get a bar of each show's colours on its card
+_palette_zone = []
+def show_colours(key, st, depth=0):
+    """Every colour the show uses over its whole loop, worked out on a full-length (48-bulb) run so a rainbow
+    is a whole rainbow, in order of first appearance, dark left out. A zone of two bulbs can't show a pattern,
+    so its cards show this instead: the colours the show is made of."""
+    if not _palette_zone: _palette_zone.append(L.load_copy([('palette a', 24), ('palette b', 24)]))
+    zm = _palette_zone[0]
+    try: tl = timeline(key, st, zm)
+    except Exception: return []
+    out = []
+    if 'items' in tl:                     # playlists: the colours of every show in them
+        for it in tl['items'] if depth == 0 else []:
+            out += [c for c in show_colours(it['show'], st, 1) if c not in out]
+    else:
+        for _, f in tl['frames']:
+            for i in range(0, len(f), 6):
+                c = '#' + f[i:i + 6]
+                if c != '#000000' and c not in out: out.append(c)
+    return out[:48]
+
 def hockey_status(key):
     """What the engine's game watcher knows about the tracked team (written to hockey.json)."""
     if key not in L.NHL_TEAM: return None
     try: return json.loads((L.DATA / 'hockey.json').read_text()).get(L.NHL_TEAM[key])
     except (OSError, ValueError): return None
+
+def zone_clock(st, z):
+    """What a zone is playing and where its clock is, for drawing it in the house picture:
+    {show, started, speed, reversed}. Game mode plays the team's theme, as in state_payload."""
+    try: eng = json.loads(L.ENGINE.read_text()).get('zones', {}).get(z['id'], {})
+    except Exception: eng = {}
+    game = eng.get('game') if z.get('follow') else None
+    view = L.zone_view(st, z); zm = L.zone_module(z)
+    show = game or view.get('show', L.DEFAULT_SHOW)
+    if zm.show_fn(show, view) is None: show = L.DEFAULT_SHOW
+    return {'show': show, 'started': eng.get('game_t0') if game else show_started(view, zm),
+            'speed': zm.speed_of(view, show), 'reversed': bool(view.get('reversed', {}).get(show)) and not game}
+
+def house_of(st):
+    """Where each string hangs, for the house picture at the top of the page (state.json 'house'), with
+    defaults: strings on row 1 end to end in order, short strings (floods) as flood lights spread out.
+    Each: {row: 1-3, place: 'after' | 'between' | 'flood', with: string it sits between, flip: bulb 1 at
+    the right, spots: [left-to-right %, one per bulb] for floods}."""
+    saved = (st.get('house') or {}).get('strings', {})
+    right = {n for z in L.zones_of(st) if z.get('direction') == 'right' for n in z.get('strings', [])}
+    out = {}
+    for name, bulbs in L.STRINGS:
+        p = dict(saved.get(name) or {})
+        if p.get('place') not in ('after', 'between', 'flood'): p['place'] = 'flood' if bulbs <= SMALL_ZONE else 'after'
+        p['row'] = p.get('row') if p.get('row') in (1, 2, 3) else 1
+        if p['place'] == 'between' and p.get('with') not in dict(L.STRINGS): p['place'] = 'after'
+        p['flip'] = bool(p['flip']) if 'flip' in p else name in right   # default: its zone's starting end
+        spots = p.get('spots') if isinstance(p.get('spots'), list) else []
+        p['spots'] = [max(0, min(100, int(x))) if isinstance(x, (int, float)) else round(100 * (i + 0.5) / bulbs)
+                      for i, x in enumerate((spots + [None] * bulbs)[:bulbs])]
+        out[name] = p
+    return out
+
+def zone_lit(st, z):
+    """Whether a zone's lights are on now (its hold, else its schedule; game mode aside), for the All view."""
+    if not L.zone_strings(z): return False
+    v = L.zone_view(st, z); ov = L.override(v)
+    return bool(L.is_on_hours(v) if ov is None else ov)
 
 def pick_zone(st, zid):
     zones = L.zones_of(st)
@@ -268,6 +333,45 @@ def show_started(view, zm):
     if old != speed:                                       # speed change: same spot, new rate
         now = time.time(); t0 = now - (now - t0) * old / speed
     return t0
+
+def normal_layout(codes, n):
+    """A string's bulb layout as one code per real bulb ('on', 'off' or 'join'), as the engine reads it."""
+    out, lit = [], False
+    for i in range(n):
+        c = codes[i] if i < len(codes) and codes[i] in L.LAYOUT_CODES else 'on'
+        if c == 'join' and not lit: c = 'on'          # nothing lit before it to join
+        out.append(c); lit = lit or c != 'off'
+    return out
+
+def save_layout(layouts):
+    """Write strings' bulb layouts into config.json (made from the current strings if there isn't one)."""
+    try: cfg = json.loads(L.CONFIG.read_text())
+    except FileNotFoundError: cfg = {}
+    if not cfg.get('strings'): cfg['strings'] = [{'name': n, 'bulbs': b} for n, b in L.PHYSICAL]
+    for s in cfg['strings']:
+        codes = layouts.get(s['name'])
+        if codes is None: continue
+        if all(c == 'on' for c in codes): s.pop('layout', None)
+        else: s['layout'] = codes
+    tmp = L.CONFIG.with_suffix('.tmp'); tmp.write_text(json.dumps(cfg, indent=2) + '\n'); os.replace(tmp, L.CONFIG)
+
+def scan_state():
+    """What the last "Find new lights" scan found (scan.json, written by scan.py; no keys or addresses)."""
+    try: sc = json.loads((L.DATA / 'scan.json').read_text())
+    except (OSError, ValueError): return {}
+    if sc.get('running'):
+        try: os.kill(sc.get('pid', 0), 0)
+        except (OSError, TypeError): sc = {**sc, 'running': False, 'error': 'The scan stopped before it finished.'}
+    if sc.get('devices'):
+        strings = dict(L.PHYSICAL)
+        sc['devices'] = [{**d, 'in_use': d['name'] in strings} for d in sc['devices']]
+    sc.pop('pid', None)
+    return sc
+
+def restart_soon():
+    """Start this server again with the new config.json once the reply has gone (the engine restarts itself)."""
+    import threading
+    threading.Timer(0.5, lambda: os.execv(sys.executable, [sys.executable] + sys.argv)).start()
 
 def string_label(name):
     i = L.ORDER.index(name)
@@ -318,6 +422,8 @@ def state_payload(zid=None):
         item = {'id': key, 'name': name, 'desc': desc, 'preview': hexes(fn(0)), 'group': GROUP_OF.get(key, ''),
                 'speed': zm.speed_of(view, key), 'max_speed': zm.max_speed(key, view),
                 'animated': bool(getattr(fn, 'period', 0)),
+                'reversed': bool(view.get('reversed', {}).get(key)),
+                'reversible': bool(getattr(fn, 'period', 0)) and getattr(fn, 'builtin', None) is None,
                 'kind': 'test' if key in TESTS else 'hockey' if key in L.NHL_TEAM else 'moving' if getattr(fn, 'period', 0) else 'still'}
         if key == 'seasonal': item['desc'] = autopilot_desc(); item['kind'] = 'moving'
         if getattr(fn, 'items', None) and not key.startswith('custom:'):           # built-in playlist
@@ -328,6 +434,7 @@ def state_payload(zid=None):
             item['kind'] = 'draft' if key == 'custom:try' else 'playlist' if spec.get('effect') == 'playlist' else 'custom'
             item['desc'] = custom_desc(spec, names)
         if key in LINKS: item['link'] = LINKS[key]
+        if zm.TOTAL <= SMALL_ZONE: item['colours'] = show_colours(key, st)
         if key in L.NHL_TEAM: item['team'] = L.NHL_TEAM[key]
         if key in MOVING_OF: item['moving_id'] = MOVING_OF[key]
         if key in VARIANTS: item['kind'] = 'variant'          # reached through its still card's Animate switch
@@ -336,12 +443,19 @@ def state_payload(zid=None):
     try: eng = json.loads(L.ENGINE.read_text()).get('zones', {}).get(zone['id'], {})
     except (OSError, ValueError): eng = {}
     game = eng.get('game') if zone.get('follow') else None   # game mode: the engine is playing the team's theme
+    shown = game or view.get('show', L.DEFAULT_SHOW)
+    if not any(x['id'] == shown for x in shows): shown = L.DEFAULT_SHOW   # a show since removed: the engine plays the default
     return {
         'zone': zone['id'],
-        'zones': [{'id': z['id'], 'name': z.get('name') or 'Lights', 'strings': [n for n, _ in L.zone_strings(z)]}
-                  for z in L.zones_of(st)],
+        'zones': [{'id': z['id'], 'name': z.get('name') or 'Lights', 'strings': [n for n, _ in L.zone_strings(z)],
+                   'direction': 'right' if z.get('direction') == 'right' else 'left',
+                   **zone_clock(st, z), 'lit': zone_lit(st, z), 'held': bool(z.get('override')) and L.override(L.zone_view(st, z)) is not None} for z in L.zones_of(st)],
         'all_strings': [{'name': n, 'label': string_label(n), 'bulbs': b} for n, b in L.STRINGS],
-        'show': game or view.get('show', L.DEFAULT_SHOW),
+        'house': house_of(st),
+        'find_secs': FIND_SECS,
+        'layout': [{'name': n, 'label': string_label(n), 'bulbs': b,
+                    'codes': normal_layout(L.LAYOUTS.get(n, []), b)} for n, b in L.PHYSICAL],
+        'show': shown,
         'game_mode': bool(game),
         'lights_name': zone.get('name') or DEFAULT_NAME,
         'shows': shows,
@@ -365,6 +479,7 @@ def state_payload(zid=None):
         'game_power': zone.get('game_power', True),
         'teams': [{'id': k, 'name': n} for k, n, _ in SHOW_INFO if k in L.NHL_TEAM],
         'goal_delay': int(zone.get('goal_delay') or 0),
+        'scan': scan_state(),
         'hockey': hockey_status(zone.get('follow')),
         'brightnesses': list(L.BRIGHTNESS),
         'strings': [{'label': string_label(n), 'name': n, 'bulbs': b} for n, b in zstrings],
@@ -431,8 +546,49 @@ def valid_time(v):
     try: datetime.datetime.strptime(v, '%H:%M'); return True
     except Exception: return False
 
+# ---- Login for access from outside the home network (such as a Cloudflare tunnel) --------------------------
+# Requests from the home network (private addresses) need no login, as before. Anything else, including a
+# tunnel, which reaches this server from the Pi itself (127.0.0.1) or carries Cloudflare's headers, must log in
+# with HTTP basic auth against auth.json in the data folder (set with: python3 web.py --set-password <user>).
+# With no auth.json, outside requests are refused outright, so a tunnel can never expose the page by accident.
+import base64 as _b64, hashlib, hmac, ipaddress, secrets
+AUTH = L.DATA / 'auth.json'
+_fails = {}                                   # outside address -> [failure times], to slow down guessing
+def from_home(handler):
+    """True for a request straight from the home network: a private address, and no proxy or tunnel headers."""
+    if any(h in handler.headers for h in ('Cf-Connecting-Ip', 'X-Forwarded-For', 'Cf-Ray', 'Forwarded')): return False
+    try: ip = ipaddress.ip_address(handler.client_address[0])
+    except ValueError: return False
+    return ip.is_private and not ip.is_loopback
+def hash_password(pw, salt):
+    return hashlib.pbkdf2_hmac('sha256', pw.encode(), bytes.fromhex(salt), 200_000).hex()
+def check_login(header):
+    try: auth = json.loads(AUTH.read_text())
+    except (OSError, ValueError): return None            # no password set: outside access is off
+    if not header or not header.startswith('Basic '): return False
+    try: user, _, pw = _b64.b64decode(header[6:]).decode().partition(':')
+    except Exception: return False
+    ok_user = hmac.compare_digest(user.encode(), auth['user'].encode())
+    ok_pw = hmac.compare_digest(hash_password(pw, auth['salt']), auth['hash'])
+    return ok_user and ok_pw
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *a): pass
+    def gate(self):
+        """None if the request may go ahead, else the refusal has been sent."""
+        if from_home(self): return None
+        who = self.headers.get('Cf-Connecting-Ip') or self.client_address[0]
+        now = time.time(); recent = [t for t in _fails.get(who, []) if now - t < 600]
+        if len(recent) >= 8:
+            return self.send(429, {'error': 'Too many wrong passwords. Try again in 10 minutes.'}) or True
+        ok = check_login(self.headers.get('Authorization'))
+        if ok is None: return self.send(403, {'error': 'Outside access is off: set a password on the Pi first.'}) or True
+        if ok: _fails.pop(who, None); return None
+        _fails[who] = recent + [now]
+        body = b'Log in to String Theory.'
+        self.send_response(401); self.send_header('WWW-Authenticate', 'Basic realm="String Theory", charset="UTF-8"')
+        self.send_header('Content-Type', 'text/plain'); self.send_header('Content-Length', str(len(body))); self.end_headers()
+        self.wfile.write(body); return True
 
     def send(self, code, body, ctype='application/json', cache=False):
         data = body if isinstance(body, bytes) else json.dumps(body).encode()
@@ -446,6 +602,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers(); self.wfile.write(data)
 
     def do_GET(self):
+        if self.gate(): return
         url = urlsplit(self.path); path = url.path; zid = parse_qs(url.query).get('zone', [None])[0]
         if path in ('/', '/index.html'):
             return self.send(200, PAGE.read_bytes(), 'text/html; charset=utf-8')
@@ -459,10 +616,15 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/previews':
             st = L.load_state(); zone = pick_zone(st, zid); zm = L.zone_module(zone)
             keys = list(zm.SHOWS) + ['custom:' + i for i in st.get('customs', {})]
+            only = parse_qs(url.query).get('show', [None])[0]
+            if only in keys:                     # just one show (and a playlist's themes): the house picture
+                tl = timeline(only, st, zm)
+                keys = [only] + [it['show'] for it in tl.get('items', [])]
             return self.send(200, {k: timeline(k, st, zm) for k in keys})
         self.send(404, {'error': 'Not found'})
 
     def do_POST(self):
+        if self.gate(): return
         if not self.headers.get('Content-Type', '').startswith('application/json'):
             return self.send(415, {'error': 'Send JSON.'})
         try:
@@ -517,6 +679,18 @@ class Handler(BaseHTTPRequestHandler):
             if not (zone.get('follow') or str(zone.get('show', '')).removesuffix('move') in L.NHL_TEAM):
                 return self.send(400, {'error': 'Play a hockey theme, or follow a team, to test the celebration.'})
             zone['celebrate'] = time.time()
+        elif path == '/api/direction':                  # which end of the zone its first bulb is at, from the street
+            d = body.get('direction')
+            if d not in ('left', 'right'): return self.send(400, {'error': 'Direction must be left or right.'})
+            if d == 'right': zone['direction'] = 'right'
+            else: zone.pop('direction', None)
+        elif path == '/api/reverse':
+            key, fn = body.get('show'), zm.show_fn(body.get('show'), view)
+            if not getattr(fn, 'period', 0) or getattr(fn, 'builtin', None) is not None:
+                return self.send(400, {'error': "That show doesn't move, so it has no direction."})
+            rev = zone.setdefault('reversed', {})
+            if body.get('reversed'): rev[key] = True
+            else: rev.pop(key, None)
         elif path == '/api/brightness':
             b = body.get('brightness')
             if b not in L.BRIGHTNESS:
@@ -594,6 +768,56 @@ class Handler(BaseHTTPRequestHandler):
             zone['fade'] = fade
             zone.update(on_at=on, on_offset=on_off if on in sun else 0, off_at=off,
                         off_offset=off_off if off in sun else 0, off_after=after if off == 'after' else zone.get('off_after', 360))
+        elif path == '/api/layout':                     # {layouts: {string name: [code per real bulb]}}
+            layouts, phys = body.get('layouts'), dict(L.PHYSICAL)
+            if not isinstance(layouts, dict) or not layouts: return self.send(400, {'error': 'Nothing to save.'})
+            clean = {}
+            for name, codes in layouts.items():
+                n = phys.get(name)
+                if n is None: return self.send(400, {'error': f'Unknown string {name}.'})
+                if not isinstance(codes, list) or len(codes) != n or any(c not in L.LAYOUT_CODES for c in codes):
+                    return self.send(400, {'error': f'Send one of on, off or join for each of the {n} bulbs.'})
+                clean[name] = normal_layout(codes, n)
+                if all(c == 'off' for c in clean[name]):
+                    return self.send(400, {'error': f'Leave at least one bulb on in {string_label(name)}.'})
+            save_layout(clean)
+            st.pop('locate', None); L.save_state(st)
+            self.send(200, {'restarting': True}); restart_soon(); return
+        elif path == '/api/house':                      # {string, row, place, with, flip, spots}: where one string hangs
+            name = body.get('string'); cur = house_of(st).get(name)
+            if cur is None: return self.send(400, {'error': 'Unknown string.'})
+            p = {**cur, **{k: body[k] for k in ('row', 'place', 'with', 'flip', 'spots') if k in body}}
+            if p['place'] == 'between' and (p.get('with') == name or p.get('with') not in dict(L.STRINGS)):
+                return self.send(400, {'error': 'Pick another string for it to sit between.'})
+            st.setdefault('house', {}).setdefault('strings', {})[name] = {k: p.get(k) for k in ('row', 'place', 'with', 'flip', 'spots')}
+            st['house']['strings'][name] = house_of(st)[name]
+        elif path == '/api/scan':                       # "Find new lights": scan.py runs in the background
+            sc = scan_state()
+            if sc.get('running'): return self.send(400, {'error': 'Already looking.'})
+            import subprocess
+            subprocess.Popen([sys.executable, str(Path(__file__).resolve().parent / 'scan.py')],
+                             env={**os.environ, 'STRINGTHEORY_DATA': str(L.DATA)}, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+            time.sleep(0.3)
+        elif path == '/api/strings/add':                # add a found device as a string, after the others
+            name, bulbs = body.get('name'), body.get('bulbs')
+            try: known = {d.get('name') for d in json.loads(L.DEVICES.read_text())}
+            except (OSError, ValueError): known = set()
+            if name not in known: return self.send(400, {'error': 'Find it with Find new lights first.'})
+            if name in dict(L.PHYSICAL): return self.send(400, {'error': 'That one is already a string.'})
+            if not (isinstance(bulbs, int) and 1 <= bulbs <= 1000): return self.send(400, {'error': 'Bulbs must be 1 to 1000.'})
+            try: cfg = json.loads(L.CONFIG.read_text())
+            except FileNotFoundError: cfg = {}
+            if not cfg.get('strings'): cfg['strings'] = [{'name': n, 'bulbs': b} for n, b in L.PHYSICAL]
+            cfg['strings'].append({'name': name, 'bulbs': bulbs})
+            tmp = L.CONFIG.with_suffix('.tmp'); tmp.write_text(json.dumps(cfg, indent=2) + '\n'); os.replace(tmp, L.CONFIG)
+            self.send(200, {'restarting': True}); restart_soon(); return
+        elif path == '/api/locate':
+            name, n, bulb = body.get('string'), dict(L.PHYSICAL).get(body.get('string')), body.get('bulb')
+            if bulb is None: st.pop('locate', None)
+            elif n is None or not isinstance(bulb, int) or not 0 <= bulb < n:
+                return self.send(400, {'error': 'Unknown bulb.'})
+            else: st['locate'] = {'string': name, 'bulb': bulb, 'until': time.time() + FIND_SECS}
         elif path == '/api/location':
             # Shared by every zone. Either coordinates (from the device, or typed in), rounded to about 1 km, or a
             # time zone such as 'America/Toronto', placed at that zone's main city (good to a few minutes of sunset).
@@ -615,11 +839,52 @@ class Handler(BaseHTTPRequestHandler):
         L.save_state(st)
         self.send(200, state_payload(zone['id']))
 
+def warm_previews():
+    """Build each zone's previews in the background (a few seconds on the Pi), so the first visit is quick."""
+    try:
+        st = L.load_state()
+        for z in L.zones_of(st):
+            zm = L.zone_module(z)
+            for k in zm.SHOWS:
+                if k != 'seasonal': timeline(k, st, zm)
+    except Exception as e: print('previews:', e, flush=True)
+
+CODE = [Path(__file__).resolve(), Path(L.__file__).resolve()]
+def watch_code():
+    """When web.py or lights.py changes (a new show, say), start this server again with it, so adding a show
+    needs no restart. The new code is checked first in a separate process; if it won't load, keep running."""
+    import subprocess, threading
+    def mtimes(): return [p.stat().st_mtime if p.exists() else None for p in CODE]
+    seen = mtimes()
+    def loop():
+        nonlocal seen
+        while True:
+            time.sleep(2)
+            now = mtimes()
+            if now == seen: continue
+            time.sleep(1); seen = mtimes()                 # let a copy finish landing
+            r = subprocess.run([sys.executable, str(CODE[0]), '--check'], capture_output=True, text=True, timeout=120)
+            if r.returncode == 0:
+                print('code changed, restarting the page server', flush=True)
+                os.execv(sys.executable, [sys.executable] + sys.argv)
+            print('code changed but has an error, keeping the old version:', (r.stderr or r.stdout).strip()[-500:], flush=True)
+    threading.Thread(target=loop, daemon=True, name='watch-code').start()
+
 if __name__ == '__main__':
-    st = L.load_state()                    # build each zone's previews once up front (a few seconds on the Pi)
-    for z in L.zones_of(st):
-        zm = L.zone_module(z)
-        for k in zm.SHOWS:
-            if k != 'seasonal': timeline(k, st, zm)
+    if '--set-password' in sys.argv:       # python3 web.py --set-password <user>: the login for outside access
+        import getpass
+        i = sys.argv.index('--set-password'); user = sys.argv[i + 1] if len(sys.argv) > i + 1 else input('User name: ').strip()
+        pw = getpass.getpass('Password (12 characters or more): ')
+        if len(pw) < 12: sys.exit('Use at least 12 characters.')
+        if pw != getpass.getpass('Again: '): sys.exit("They didn't match.")
+        salt = secrets.token_hex(16)
+        fd = os.open(AUTH.with_suffix('.tmp'), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, 'w') as f: json.dump({'user': user, 'salt': salt, 'hash': hash_password(pw, salt)}, f)
+        os.replace(AUTH.with_suffix('.tmp'), AUTH); print(f'Saved. Outside access now asks for {user} and that password.'); sys.exit(0)
+    if '--check' in sys.argv:              # used by watch_code(): getting here means web.py and lights.py load
+        L.zone_module({'strings': L.ORDER}); sys.exit(0)
+    import threading
+    threading.Thread(target=warm_previews, daemon=True, name='previews').start()
+    watch_code()
     print(f'lights web on :{PORT}', flush=True)
     ThreadingHTTPServer(('0.0.0.0', PORT), Handler).serve_forever()
