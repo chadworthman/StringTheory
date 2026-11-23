@@ -67,7 +67,7 @@ SHOW_INFO = [
     ('rainbowmove',  'Rainbow (moving)', 'The colour wheel rolling along the whole length.'),
     ('doublemove',   'Double rainbow (moving)', 'Two colour wheels end to end, rolling along together.'),
     ('fibonacci',    'Fibonacci',        'On a white string, golden-angle colours grow from the start 1, 2, 3, 5, 8, 13, 21, 34 bulbs until it is full, then give way to white from the start the same way, so the colour travels along.'),
-    ('chaos',        'Chaos',            'Colours changing at random, the whole string lurching about, sudden white bursts, strobes, and blackouts of a stretch or the whole string.'),
+    ('chaos',        'Chaos',            'Colours changing at random, the whole string lurching about, sudden white bursts, strobes, and stretches of bulbs going dark.'),
     ('rainbow',      'Rainbow',          'The colour wheel in order, end to end.'),
     ('double',       'Double rainbow',   'The colour wheel twice, end to end.'),
     ('jostle',       'Confetti (moving)',  'The rainbow colours jostling and drifting along.'),

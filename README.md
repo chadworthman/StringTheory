@@ -229,7 +229,7 @@ journalctl -u string-theory -f # engine log on a Pi, including per-string delive
 | Aurora colours (moving) | The aurora bands holding still while the blue slowly widens and narrows around each purple centre. |
 | Rainbow (moving), Double rainbow (moving) | The colour wheel (once or twice end to end) rolling along. |
 | Fibonacci | On a white string, golden-angle colours grow from the start 1, 2, 3, 5, 8, 13, 21, 34 bulbs until it is full, then give way to white from the start the same way, so the colour travels along. |
-| Chaos | Colours changing at random, the whole string lurching about, sudden white bursts, strobes, and blackouts of a stretch or the whole string. |
+| Chaos | Colours changing at random, the whole string lurching about, sudden white bursts, strobes, and stretches of bulbs going dark. |
 | Holiday autopilot | Picks a show by date: Valentine's Day, St. Patrick's Day, Easter, Canada Day, Fourth of July, Halloween, Hanukkah, Christmas, New Year's Eve, and Classic the rest of the year. |
 
 Still themes: Classic, Holly (three green leaves and a red berry), Candy cane, Rainbow, Double rainbow ([what does it mean?](https://www.youtube.com/watch?v=OQSNhk5ICTI)), Confetti, Golden angle (each bulb 137.5° round the colour wheel from the last, like sunflower seeds), Halloween, Red & green, Christmas tree, Peppermint, Blue & white, Silver & gold, Aurora colours, Sunset, Valentine's Day, St. Patrick's Day, Easter, Canada Day and Fourth of July.

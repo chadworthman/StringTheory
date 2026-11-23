@@ -392,7 +392,7 @@ def fibonacci(stage=1.0, full=4.0):
 
 def chaos(step=0.4, loop=300, change=0.3):
     """Saturated colours changing at random, the whole string lurching back and forth, with
-    random white bursts, the odd full-string strobe, and sudden blackouts of a stretch or the whole string. Deterministic per step, so every string agrees."""
+    random white bursts, the odd full-string strobe, and stretches of bulbs suddenly going dark. Deterministic per step, so every string agrees."""
     def colour(i, k):
         for j in range(k, k - 30, -1):                  # most recent step at which this bulb changed
             r = random.Random((j % loop) * 1000003 + i)
@@ -415,10 +415,6 @@ def chaos(step=0.4, loop=300, change=0.3):
             if g.random() < 0.15 and k - j < g.randint(1, 3):
                 a = g.randrange(TOTAL); n = g.randint(4, 14)
                 for x in range(a, min(TOTAL, a + n)): bulbs[x] = (0, 0, 0)
-        for j in range(k, k - 4, -1):                   # a sudden blackout, 1 to 4 steps long
-            b = random.Random((j % loop) * 7919 + 17)
-            if b.random() < 0.035 and k - j < b.randint(1, 4):
-                return [(0, 0, 0)] * TOTAL
         return bulbs
     show.period = loop * step; show.step = step; show.tick = step
     return show
