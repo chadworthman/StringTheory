@@ -195,6 +195,12 @@ def timeline(key, st=None, zm=L):
         _timelines[ck] = {'period': period, 'frames': frames}
     return _timelines[ck]
 
+def hockey_status(key):
+    """What the engine's game watcher knows about the tracked team (written to hockey.json)."""
+    if key not in L.NHL_TEAM: return None
+    try: return json.loads((L.DATA / 'hockey.json').read_text()).get(L.NHL_TEAM[key])
+    except (OSError, ValueError): return None
+
 def pick_zone(st, zid):
     zones = L.zones_of(st)
     return next((z for z in zones if z['id'] == str(zid)), zones[0])
@@ -272,6 +278,7 @@ def state_payload(zid=None):
             item['kind'] = 'draft' if key == 'custom:try' else 'playlist' if spec.get('effect') == 'playlist' else 'custom'
             item['desc'] = custom_desc(spec, names)
         if key in LINKS: item['link'] = LINKS[key]
+        if key in L.NHL_TEAM: item['team'] = L.NHL_TEAM[key]
         if key in MOVING_OF: item['moving_id'] = MOVING_OF[key]
         if key in VARIANTS: item['kind'] = 'variant'          # reached through its still card's Animate switch
         shows.append(item)
@@ -298,6 +305,9 @@ def state_payload(zid=None):
         'started': show_started(view, zm),
         'speeds': [s for s in L.SPEEDS],
         'brightness': L.brightness_of(view),
+        'track': zone.get('track') if zone.get('track') in L.NHL_TEAM and view.get('show') in (zone.get('track'), str(zone.get('track')) + 'move') else None,
+        'goal_delay': int(zone.get('goal_delay') or 0),
+        'hockey': hockey_status(zone.get('track')),
         'brightnesses': list(L.BRIGHTNESS),
         'strings': [{'label': string_label(n), 'name': n, 'bulbs': b} for n, b in zstrings],
         'total': zm.TOTAL if zstrings else 0,
@@ -409,6 +419,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/show':
             if zm.show_fn(body.get('show'), view) is None: return self.send(400, {'error': 'Unknown show.'})
             zone['show'] = body['show']
+            tr = zone.get('track')                       # picking another theme stops following that team's games
+            if tr and body['show'] not in (tr, tr + 'move'): zone.pop('track', None)
         elif path == '/api/power':
             mode = body.get('mode')
             if mode == 'auto':
@@ -431,6 +443,23 @@ class Handler(BaseHTTPRequestHandler):
             if speed not in L.SPEEDS or speed > zm.max_speed(key, view):
                 return self.send(400, {'error': f'Pick a speed from {L.SPEEDS[0]}x to {zm.max_speed(key, view)}x.'})
             zone.setdefault('speeds', {})[key] = speed
+        elif path == '/api/track':
+            # Follow a hockey team's games and celebrate its goals (only while its theme plays).
+            key = body.get('show')
+            if key not in L.NHL_TEAM: return self.send(400, {'error': 'Game tracking works with the hockey themes.'})
+            if body.get('on'):
+                zone['track'] = key
+                play = body.get('play') if body.get('play') in (key, key + 'move') else key
+                if zone.get('show') not in (key, key + 'move'): zone['show'] = play
+            elif zone.get('track') == key:
+                zone.pop('track', None)
+        elif path == '/api/goal-delay':
+            v = body.get('seconds')
+            if not (isinstance(v, int) and 0 <= v <= 120): return self.send(400, {'error': 'Pick a delay of 0 to 120 seconds.'})
+            zone['goal_delay'] = v
+        elif path == '/api/celebrate':
+            if not zone.get('track'): return self.send(400, {'error': 'Turn on Track games & goals first.'})
+            zone['celebrate'] = time.time()
         elif path == '/api/brightness':
             b = body.get('brightness')
             if b not in L.BRIGHTNESS:

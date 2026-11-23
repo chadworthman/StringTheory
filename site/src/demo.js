@@ -162,6 +162,8 @@
       case '/api/power':
         if (!['on', 'off', 'auto'].includes(body.mode)) return no('Mode must be on, off or auto.');
         st.mode = body.mode; break;
+      case '/api/track': case '/api/goal-delay': case '/api/celebrate':
+        return no('Following games needs your own String Theory at home: it watches the NHL\'s live scores and lights up for goals.');
       case '/api/brightness':
         if (!D.state.brightnesses.includes(body.brightness)) return no('Pick a brightness from the list.');
         st.brightness = body.brightness; break;

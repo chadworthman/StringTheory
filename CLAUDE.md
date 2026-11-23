@@ -78,6 +78,13 @@ DP numbers are `DP_SWITCH`, `DP_PAINT` and `DP_EFFECT` at the top of `lights.py`
 - **Locate me** uses the browser's position on secure pages (the website demo), else the device's time zone looked up in `pi/tz_coords.json` (each zone's main city, generated from the public-domain tz database's `zone1970.tab`). The Pi's page is plain http, so it always uses the time zone there. Coordinates are rounded to 2 decimals. Never commit a real location: it lives in `state.json` in the data folder.
 - CLI: `lights schedule sunset-5 6h`, `lights schedule sunset sunrise`, `lights location <lat> <lon>`.
 
+## Hockey game tracking
+
+- Zone keys: `track` (a hockey theme key such as `leafs`; `NHL_TEAM` maps it to the NHL abbreviation), `goal_delay` (seconds) and `celebrate` (a timestamp from **Test celebration**). `/api/show` clears `track` when another theme is picked; the engine also ignores it unless that team's still or moving theme is playing.
+- `HockeyWatcher` (a thread in the engine) is the only code that goes online, and only for tracked teams. It reads `api-web.nhle.com/v1/club-schedule/<TEAM>/week/now` every 3 hours, and `/v1/gamecenter/<id>/landing` every 30 s from 15 min before puck drop, then every 5 s while `LIVE`/`CRIT`. A rise in the team's score queues a celebration at detection time + `goal_delay`. It writes `hockey.json` for the page. Joining mid-game takes the current score as the baseline, so old goals don't fire.
+- A celebration sets `Shared.party` (a `goal_flash()` of the team's colours) for `GOAL_SECS`, and the string workers play it instead of the show.
+- The demo can't follow games, so it answers these endpoints with an explanation.
+
 ## Zones
 
 - `state.json` has `zones: [{id, name, strings, show, speeds, brightness, override, on_at, off_at, on_offset, off_offset, off_after}]` and a shared `location`. `customs` and `effect_names` are shared by all zones. Old single-zone state, with those keys at the top level, is read as one zone by `zones_of()` and rewritten by `materialise_zones()` on the next save.

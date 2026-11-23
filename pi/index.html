@@ -253,6 +253,11 @@
                background: var(--night); color: var(--text); border: 1px solid var(--edge); border-radius: var(--r-sm);
                padding: 8px 10px; font: inherit; font-size: 17px; }
   .loc { margin-top: 14px; display: grid; gap: 12px; }
+  .hockey { margin-top: 12px; background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 14px 16px; display: grid; gap: 10px; }
+  .hockey p { margin: 0; }
+  .hockey .hk-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+  .hockey select { display: block; width: 100%; min-height: 44px; background: var(--night); color: var(--text); border: 1px solid var(--edge);
+                   border-radius: var(--r-sm); padding: 6px 10px; font: inherit; }
   .loc .note { margin: 0; }
   .loc .exact summary { color: var(--muted); font-size: 15px; cursor: pointer; }
   .loc .exact[open] { display: grid; gap: 12px; }
@@ -312,6 +317,15 @@
       <span class="name" id="now-name"></span>
       <span class="desc" id="now-desc"></span>
       <button type="button" class="btn2" id="change-show">Change show</button>
+    </div>
+
+    <div class="hockey" id="hockey" hidden>
+      <p id="hk-status"></p>
+      <div class="hk-row">
+        <label>Goal delay <select id="hk-delay"></select></label>
+        <button type="button" class="btn2" id="hk-test">Test celebration</button>
+      </div>
+      <p class="note">Goals come from the NHL's live scores, a few seconds after they happen. TV and streams usually run behind, so set the delay until the lights match your screen.</p>
     </div>
 
     <h2 id="power-h">Power</h2>
@@ -660,7 +674,8 @@ function render(s) {
       </button>${x.link ? `<a class="more" href="${esc(x.link.url)}" title="${esc(x.link.title)}" target="_blank" rel="noopener">${esc(x.link.text)}</a>` : ''}${x.spec && x.kind !== 'draft' ? `<div class="card-actions">
         <button type="button" data-edit="${x.id}">Edit</button><button type="button" data-del="${x.id}">Delete</button></div>`
         : x.playlist ? `<div class="card-actions"><button type="button" data-copy="${x.id}">Edit a copy</button></div>`
-        : x.moving_id ? `<label class="switch"><input type="checkbox" role="switch" data-pair="${x.id}"><span>Animate</span></label></div>` : ''}</li>`;
+        : x.moving_id ? `<label class="switch"><input type="checkbox" role="switch" data-pair="${x.id}"><span>Animate</span></label>${x.team
+          ? `<label class="switch"><input type="checkbox" role="switch" data-track="${x.id}"><span>Track games &amp; goals</span></label>` : ''}</div>` : ''}</li>`;
     }).join('');
     ul.querySelectorAll('.show').forEach((b, i) => wire(b.querySelector('.wire'), s.shows[i].preview));
   }
@@ -673,6 +688,7 @@ function render(s) {
     }
     b.setAttribute('aria-pressed', b.dataset.id === s.show || (!!m && m === s.show));
   });
+  ul.querySelectorAll('input[data-track]').forEach(t => t.checked = s.track === t.dataset.track);   // off once another theme plays
   if (!tab && location.hash === '#newplaylist') { tab = 'custom'; edMode = 'playlist'; showView('create'); }
   // Start on the tab named in the link (#still etc.), else the last tab chosen on this phone, else Still.
   const TABS = ['still', 'moving', 'playlist', 'custom', 'test'];
@@ -696,6 +712,7 @@ function render(s) {
   $('#speed-for').textContent = cur.name;
   sl.max = steps.length - 1;
   if (document.activeElement !== sl) { sl.value = steps.indexOf(cur.speed); showSpeed(); }
+  showHockey(s);
   const bl = $('#bright'); bl.max = s.brightnesses.length - 1;
   if (document.activeElement !== bl) { bl.value = Math.max(0, s.brightnesses.indexOf(s.brightness)); showBright(); }
 
@@ -726,6 +743,25 @@ function showBright() {
   $('#bright-val').textContent = brightLabel(v); $('#bright').setAttribute('aria-valuetext', brightLabel(v));
   $('#hero').style.setProperty('--dim', (0.35 + 0.65 * v).toFixed(2));
 }
+// Hockey: what the game watcher knows, the goal delay and a test celebration.
+$('#hk-delay').innerHTML = [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120].map(v => `<option value="${v}">${v ? v + ' seconds' : 'None'}</option>`).join('');
+function showHockey(s) {
+  $('#hockey').hidden = !s.track; if (!s.track) return;
+  const team = s.shows.find(x => x.id === s.track)?.name || 'your team', h = s.hockey;
+  const when = t => new Date(t * 1000).toLocaleString([], {weekday: 'short', hour: 'numeric', minute: '2-digit'});
+  const vs = g => `${g.home ? 'vs' : 'at'} ${g.opp}`;
+  let text = `Following ${team} games. Goals light up the string.`;
+  const g = h?.game;
+  if (g && ['LIVE', 'CRIT'].includes(g.state)) text = `Live ${vs(g)}: ${team.split(' ').pop()} ${g.score ?? 0}, ${g.opp} ${g.opp_score ?? 0}${g.period ? ` (period ${g.period})` : ''}.`;
+  else if (g) text = `Game ${vs(g)} starts ${when(g.start)}. Watching for goals.`;
+  else if (h?.next) text = `Following ${team}. Next game ${vs(h.next)}, ${when(h.next.start)}.`;
+  $('#hk-status').textContent = text;
+  if (document.activeElement !== $('#hk-delay')) $('#hk-delay').value = s.goal_delay;
+}
+$('#hk-delay').addEventListener('change', async e => {
+  if (await api('/api/goal-delay', {seconds: +e.target.value})) toast(`Goal delay: ${+e.target.value ? e.target.value + ' seconds' : 'none'}`);
+});
+$('#hk-test').addEventListener('click', async () => { if (await api('/api/celebrate', {})) toast('Goal!'); });
 $('#bright').addEventListener('input', showBright);
 $('#bright').addEventListener('change', async () => {
   const v = state.brightnesses[+$('#bright').value];
@@ -965,6 +1001,14 @@ $('#shows').addEventListener('change', async e => {
   setPlay(b, box.checked); tick();
   // Flipping the switch picks this card: plays its animated (on) or still (off) version.
   if (await api('/api/show', {show: b.dataset.play})) toast(`Playing ${name}${box.checked ? ', animated' : ''}`);
+});
+// Track games & goals (hockey themes): plays the card and follows that team's NHL games until another theme is picked.
+$('#shows').addEventListener('change', async e => {
+  const box = e.target.closest('input[data-track]'); if (!box) return;
+  const b = $(`#shows .show[data-id="${box.dataset.track}"]`), name = b.querySelector('.name').textContent;
+  const s = await api('/api/track', {show: box.dataset.track, on: box.checked, play: b.dataset.play || box.dataset.track});
+  if (s) toast(box.checked ? `Following ${name} games: goals light up the string` : `Stopped following ${name} games`);
+  else box.checked = !box.checked;
 });
 
 // The S-shaped wire from the end of each string, down under its bulbs, back to the start of the next.

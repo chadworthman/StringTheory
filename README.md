@@ -236,6 +236,10 @@ Still themes: Classic, Holly (three green leaves and a red berry), Candy cane, R
 
 Hockey: the seven Canadian NHL teams in their colours (Calgary Flames, Edmonton Oilers, Montréal Canadiens, Ottawa Senators, Toronto Maple Leafs, Vancouver Canucks and Winnipeg Jets), each with an Animate that alternates a chase of the team's stripes with flashes of each team colour. String Theory isn't affiliated with the NHL or any team.
 
+**Track games & goals.** Each hockey theme's card has a second switch. Turn it on and String Theory follows that team's NHL games: when the team scores, the whole string flashes the team's colours for about 10 seconds, then the show carries on. The Now screen shows the next game or the live score, a **Goal delay** setting to line the celebration up with your TV (broadcasts and streams usually run 10 to 60 seconds behind live), and a **Test celebration** button. Picking any other theme turns tracking off.
+
+This is the only part of String Theory that uses the internet, and only while it's switched on. It reads the NHL's public live-score service (`api-web.nhle.com`, the one the NHL's own website uses), which needs no account: the team's schedule a few times a day, the game every 30 seconds from 15 minutes before puck drop, and every 5 seconds while it's live. That service isn't an official, documented API, so it could change without notice.
+
 Test patterns, for setting up and for chasing down Wi-Fi problems:
 
 | Test | What it's for |
