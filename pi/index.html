@@ -26,7 +26,8 @@
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
-  [hidden] { display: none !important; }   /* class display rules must never un-hide things */
+  [hidden] { display: none !important; }
+  html, body { overflow-x: clip; }   /* nothing (like the S-wire's bend) may push the page sideways on a phone */   /* class display rules must never un-hide things */
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; min-height: 100vh; background: var(--night); color: var(--text);
@@ -118,7 +119,7 @@
     .view[data-view="now"], .view[data-view="create"], .view[data-view="setup"] { max-width: 600px; margin: 0 auto; }
     .shows { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
     .shows .group { grid-column: 1 / -1; }
-    .tabs[role=tablist] { max-width: 600px; }
+    .tabs[role=tablist] { max-width: 640px; }
     .bottom-nav { padding-left: calc((100vw - 600px) / 2); padding-right: calc((100vw - 600px) / 2); }
   }
   @media (min-width: 1150px) {
@@ -204,6 +205,12 @@
   .btn2 { min-height: 50px; border-radius: 17px; border: 1px solid var(--edge); background: transparent; font-weight: 700; }
   .btn1 { min-height: 50px; border-radius: 17px; border: 0; background: var(--amber); color: var(--night); font-weight: 700; }
   .tabs.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Shows' filter tabs: one row of six, sized to their words, scrolling sideways only if a screen is very narrow */
+  .tabs[role=tablist] { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: max-content; gap: 2px;
+                        justify-content: space-between; overflow-x: auto; scrollbar-width: none; }
+  .tabs[role=tablist]::-webkit-scrollbar { display: none; }
+  .tabs[role=tablist] button { padding: 0 6px; font-size: 13.5px; letter-spacing: -0.01em; }
+  @media (min-width: 700px) { .tabs[role=tablist] button { padding: 0 14px; font-size: 15px; } }
   .tabs button[aria-pressed="true"] { background: var(--text); color: var(--night); }
   .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; counter-reset: step; }
   .steps li { border: 1px solid var(--edge); border-radius: var(--r-sm); padding: 12px; display: grid; gap: 10px;
@@ -238,6 +245,8 @@
   .now-card a.more { margin: 6px 0 0; }
   .show[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset, 0 0 22px -8px var(--amber); }
   .show[aria-pressed="true"] .name::after { content: "Playing"; color: var(--amber); font-size: 14px; font-weight: 650; }
+  .show[data-team][aria-pressed="true"] .name::after { content: "Following"; }
+  .hockey .hk-settings { display: grid; gap: 12px; }
   .show:active { transform: scale(0.99); }
   .card { border: 1px solid var(--edge); background: var(--panel); border-radius: var(--r-sm); overflow: hidden; }
   .card .show { border: 0; border-radius: 0; padding-bottom: 6px; }
@@ -253,6 +262,7 @@
                background: var(--night); color: var(--text); border: 1px solid var(--edge); border-radius: var(--r-sm);
                padding: 8px 10px; font: inherit; font-size: 17px; }
   .loc { margin-top: 14px; display: grid; gap: 12px; }
+  .fade-row { margin-top: 12px; }
   .hockey { display: grid; gap: 12px; }
   .hockey p { margin: 0; }
   .hockey-now { margin: 10px 4px 0; color: var(--muted); font-size: 15px; }
@@ -361,9 +371,23 @@
     <div class="tabs" role="tablist" aria-labelledby="shows-h">
       <button role="tab" data-kind="still" aria-selected="false" aria-controls="shows">Still</button>
       <button role="tab" data-kind="moving" aria-selected="false" aria-controls="shows">Moving</button>
+      <button role="tab" data-kind="hockey" aria-selected="false" aria-controls="shows">Hockey</button>
       <button role="tab" data-kind="playlist" aria-selected="false" aria-controls="shows">Playlists</button>
       <button role="tab" data-kind="custom" aria-selected="false" aria-controls="shows">Yours</button>
       <button role="tab" data-kind="test" aria-selected="false" aria-controls="shows">Tests</button>
+    </div>
+    <div class="sched hockey" id="hockey-panel" hidden>
+      <p class="note">Your regular show plays as usual. Tap a team and its show takes over during each of its games, celebrating every goal with a red goal light and the team's colours, then hands back.</p>
+      <p class="hint" id="hk-status"></p>
+      <div class="hk-settings" id="hk-settings">
+        <label class="switch"><input type="checkbox" role="switch" id="hk-power"><span>Turn the lights on for games</span></label>
+        <div class="hk-row">
+          <label>Goal delay <select id="hk-delay"></select></label>
+          <button type="button" class="btn2" id="hk-test">Test celebration</button>
+        </div>
+        <p class="note">Goals come from the NHL's live scores, a few seconds after they happen. TV and streams usually run behind, so set the delay until the lights match your screen.</p>
+        <button type="button" class="btn2 wide" id="hk-stop">Stop following</button>
+      </div>
     </div>
     <ul class="shows" id="shows" role="tabpanel"></ul>
     <button type="button" class="btn2 wide" id="pl-new" hidden>Build your own playlist</button>
@@ -447,6 +471,7 @@
           <label data-for="off-sun">When <select id="off-offset"></select></label>
         </div>
       </div>
+      <label class="fade-row">Fade in and out <select id="fade"></select></label>
       <div class="loc" id="loc" hidden>
         <p class="note" id="loc-now"></p>
         <button type="button" class="btn2 wide" id="here">Locate me</button>
@@ -462,19 +487,6 @@
       <p class="hint" id="sched-now"></p>
       <button class="save" type="submit" id="save" disabled>Save schedule</button>
     </form>
-
-    <h2 id="hockey-h">Hockey</h2>
-    <div class="sched hockey">
-      <label>Follow a team <select id="hk-team"></select></label>
-      <p class="note">During every game the lights switch to the team's show and celebrate each goal with a red goal light and the team's colours, then go back to your show. Pick another show mid-game to take the lights back until the next game.</p>
-      <label class="switch"><input type="checkbox" role="switch" id="hk-power"><span>Turn the lights on for games</span></label>
-      <div class="hk-row">
-        <label>Goal delay <select id="hk-delay"></select></label>
-        <button type="button" class="btn2" id="hk-test">Test celebration</button>
-      </div>
-      <p class="note">Goals come from the NHL's live scores, a few seconds after they happen. TV and streams usually run behind, so set the delay until the lights match your screen.</p>
-      <p class="hint" id="hk-status"></p>
-    </div>
 
     <h2 id="zones-h">Zones</h2>
     <div class="sched">
@@ -500,12 +512,6 @@
     <button type="button" data-view="create" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.7-.8 1.7-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.6 1.7-1.6h2a4.1 4.1 0 0 0 4.1-4.1C20.5 6.9 16.7 3.5 12 3.5Z"/><circle cx="7.6" cy="11.5" r="1.1"/><circle cx="10" cy="7.6" r="1.1"/><circle cx="14.6" cy="7.6" r="1.1"/></svg>Create</button>
     <button type="button" data-view="setup" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>Setup</button>
 </nav>
-<dialog class="ask" id="follow-ask">
-  <h2 id="fa-title">Follow this team?</h2>
-  <p id="fa-text"></p>
-  <div class="ask-buttons"><button type="button" class="save" id="fa-yes">Follow every game</button>
-    <button type="button" class="btn2 wide" id="fa-no">Not now</button></div>
-</dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -526,6 +532,7 @@ function showTab() {
   localStorage.setItem('tab', tab);              // come back to this tab next time
   document.querySelectorAll('.tabs button[data-kind]').forEach(b => b.setAttribute('aria-selected', b.dataset.kind === tab));
   document.querySelectorAll('#shows li').forEach(li => li.hidden = li.dataset.kind !== tab);
+  $('#hockey-panel').hidden = tab !== 'hockey';
   $('#editor').hidden = edMode !== 'pattern';
   $('#pl-editor').hidden = edMode !== 'playlist';
   document.querySelectorAll('#ed-switch button').forEach(b => b.setAttribute('aria-pressed', b.dataset.ed === edMode));
@@ -682,17 +689,18 @@ function render(s) {
     ul.dataset.sig = sig;
     const seen = {};                            // a heading wherever the group changes within a tab
     ul.innerHTML = s.shows.map(x => {
-      const head = x.group && seen[x.kind] !== x.group && x.kind !== 'custom' && x.kind !== 'draft' && x.kind !== 'test'
+      const head = x.group && seen[x.kind] !== x.group && !['custom', 'draft', 'test', 'hockey'].includes(x.kind)
         ? `<li class="group" data-kind="${x.kind}"><h3>${esc(x.group)}</h3></li>` : '';
       seen[x.kind] = x.group;
       return head + `
-      <li data-kind="${x.kind}">${x.moving_id ? '<div class="card">' : ''}<button class="show" data-id="${x.id}"${x.moving_id ? ` data-moving="${x.moving_id}"` : ''} aria-pressed="false">
+      <li data-kind="${x.kind}">${x.moving_id || x.kind === 'hockey' ? '<div class="card">' : ''}<button class="show" data-id="${x.id}"${x.moving_id ? ` data-moving="${x.moving_id}"` : ''}${x.kind === 'hockey' ? ' data-team' : ''} aria-pressed="false">
         <span class="name">${esc(x.name)}</span>
         <span class="wire" aria-hidden="true"></span>
         <span class="desc">${esc(x.desc)}</span>
       </button>${x.link ? `<a class="more" href="${esc(x.link.url)}" title="${esc(x.link.title)}" target="_blank" rel="noopener">${esc(x.link.text)}</a>` : ''}${x.spec && x.kind !== 'draft' ? `<div class="card-actions">
         <button type="button" data-edit="${x.id}">Edit</button><button type="button" data-del="${x.id}">Delete</button></div>`
         : x.playlist ? `<div class="card-actions"><button type="button" data-copy="${x.id}">Edit a copy</button></div>`
+        : x.kind === 'hockey' ? `<div class="card-actions"><button type="button" data-playnow="${x.id}">${x.id === s.show ? 'Playing now' : 'Play now'}</button></div></div>`
         : x.moving_id ? `<label class="switch"><input type="checkbox" role="switch" data-pair="${x.id}"><span>Animate</span></label></div>` : ''}</li>`;
     }).join('');
     ul.querySelectorAll('.show').forEach((b, i) => wire(b.querySelector('.wire'), s.shows[i].preview));
@@ -704,11 +712,14 @@ function render(s) {
       box.checked = s.show === m;
       setPlay(b, box.checked);
     }
-    b.setAttribute('aria-pressed', b.dataset.id === s.show || (!!m && m === s.show));
+    const pn = b.parentElement.querySelector('[data-playnow]');
+    if (pn) pn.textContent = b.dataset.id === s.show ? 'Playing now' : 'Play now';
+    b.setAttribute('aria-pressed', 'team' in b.dataset ? b.dataset.id === s.follow         // hockey: the team you follow
+                                                      : b.dataset.id === s.show || (!!m && m === s.show));
   });
   if (!tab && location.hash === '#newplaylist') { tab = 'custom'; edMode = 'playlist'; showView('create'); }
   // Start on the tab named in the link (#still etc.), else the last tab chosen on this phone, else Still.
-  const TABS = ['still', 'moving', 'playlist', 'custom', 'test'];
+  const TABS = ['still', 'moving', 'hockey', 'playlist', 'custom', 'test'];
   if (!tab && TABS.includes(location.hash.slice(1))) showView('shows');
   if (!tab && VIEWS.includes(location.hash.slice(1))) showView(location.hash.slice(1));
   if (!tab) tab = TABS.find(k => '#' + k === location.hash)
@@ -773,39 +784,20 @@ function hockeyText(s) {
   return `Following the ${team}.`;
 }
 function showHockey(s) {
-  const sel = $('#hk-team');
-  if (sel.options.length !== s.teams.length + 1)
-    sel.innerHTML = '<option value="">No team</option>' + s.teams.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
-  if (document.activeElement !== sel) sel.value = s.follow || '';
   $('#hk-power').checked = s.game_power;
-  document.querySelectorAll('#hk-power, #hk-delay, #hk-test').forEach(el => el.disabled = !s.follow);
+  $('#hk-settings').hidden = !s.follow;
+  $('#hk-test').disabled = !(s.follow || s.teams.some(t => s.show.replace(/move$/, '') === t.id));
   if (document.activeElement !== $('#hk-delay')) $('#hk-delay').value = s.goal_delay;
-  $('#hk-status').textContent = hockeyText(s);
+  $('#hk-status').textContent = s.follow ? hockeyText(s) : 'Not following a team.';
   $('#hockey-now').hidden = !s.follow;
   $('#hockey-now').innerHTML = s.game_mode ? `<strong>Game mode.</strong> ${esc(hockeyText(s))}` : esc(hockeyText(s));
 }
-$('#hk-team').addEventListener('change', async e => {
-  const t = state.teams.find(x => x.id === e.target.value);
-  if (await api('/api/follow', {team: e.target.value || null})) toast(t ? `Following the ${t.name}` : 'Not following a team');
-});
+$('#hk-stop').addEventListener('click', async () => { if (await api('/api/follow', {team: null})) toast('Not following a team'); });
 $('#hk-power').addEventListener('change', e => api('/api/follow', {team: state.follow, game_power: e.target.checked}));
 $('#hk-delay').addEventListener('change', async e => {
   if (await api('/api/goal-delay', {seconds: +e.target.value})) toast(`Goal delay: ${+e.target.value ? e.target.value + ' seconds' : 'none'}`);
 });
 $('#hk-test').addEventListener('click', async () => { if (await api('/api/celebrate', {})) toast('Goal!'); });
-function askFollow(id) {               // picked a team's theme: offer to follow its games (once per team on this device)
-  const key = id.replace(/move$/, ''), t = state?.teams.find(x => x.id === key);
-  if (!t || state.follow === key || localStorage.getItem('asked-follow:' + key)) return;
-  $('#fa-title').textContent = `Follow the ${t.name}?`;
-  $('#fa-text').textContent = `During every ${t.name.split(' ').pop()} game, the lights switch to this show and celebrate each goal with a red goal light and the team's colours, then go back to your usual show. You can change this in Setup.`;
-  $('#follow-ask').dataset.team = key; $('#follow-ask').showModal();
-}
-$('#fa-yes').addEventListener('click', async () => {
-  const d = $('#follow-ask'); d.close(); localStorage.setItem('asked-follow:' + d.dataset.team, '1');
-  const t = state.teams.find(x => x.id === d.dataset.team);
-  if (await api('/api/follow', {team: d.dataset.team})) toast(`Following the ${t.name}`);
-});
-$('#fa-no').addEventListener('click', () => { const d = $('#follow-ask'); d.close(); localStorage.setItem('asked-follow:' + d.dataset.team, '1'); });
 $('#bright').addEventListener('input', showBright);
 $('#bright').addEventListener('change', async () => {
   const v = state.brightnesses[+$('#bright').value];
@@ -1044,7 +1036,7 @@ $('#shows').addEventListener('change', async e => {
   const b = $(`#shows .show[data-id="${box.dataset.pair}"]`), name = b.querySelector('.name').textContent;
   setPlay(b, box.checked); tick();
   // Flipping the switch picks this card: plays its animated (on) or still (off) version.
-  if (await api('/api/show', {show: b.dataset.play})) { toast(`Playing ${name}${box.checked ? ', animated' : ''}`); askFollow(b.dataset.id); }
+  if (await api('/api/show', {show: b.dataset.play})) toast(`Playing ${name}${box.checked ? ', animated' : ''}`);
 });
 
 // The S-shaped wire from the end of each string, down under its bulbs, back to the start of the next.
@@ -1093,9 +1085,18 @@ document.querySelector('.tabs[role=tablist]').addEventListener('click', e => {
   tab = b.dataset.kind; showTab(); tick();
 });
 $('#shows').addEventListener('click', async e => {
+  const pn = e.target.closest('[data-playnow]');           // hockey: make a team's theme the regular show
+  if (pn) { if (await api('/api/show', {show: pn.dataset.playnow})) toast(`Playing ${state.teams.find(t => t.id === pn.dataset.playnow).name}`); return; }
+  const h = e.target.closest('.show[data-team]');          // hockey: tap to follow (or stop following) a team's games
+  if (h) {
+    const t = state.teams.find(x => x.id === h.dataset.id), on = state.follow !== h.dataset.id;
+    if (await api('/api/follow', {team: on ? h.dataset.id : null}))
+      toast(on ? `Following the ${t.name}: its show takes over during games` : `Stopped following the ${t.name}`);
+    return;
+  }
   const b = e.target.closest('.show'); if (!b || (b.dataset.play || b.dataset.id) === state?.show) return;
   const s = await api('/api/show', {show: b.dataset.id});
-  if (s) { toast(`Playing ${b.querySelector('.name').textContent}`); askFollow(b.dataset.id); }
+  if (s) toast(`Playing ${b.querySelector('.name').textContent}`);
 });
 // Schedule: on at a time / around sunset / around sunrise; off at a time / after a while / around sunrise or sunset.
 const SUN_OFFSETS = [-120, -90, -60, -45, -30, -20, -15, -10, -5, 0, 5, 10, 15, 20, 30, 45, 60, 90, 120];
@@ -1110,7 +1111,7 @@ function schedForm() {
   const onK = $('#on-kind').value, offK = $('#off-kind').value;
   return {on: onK === 'time' ? $('#on').value : onK, on_offset: onK === 'time' ? 0 : +$('#on-offset').value,
           off: offK === 'time' ? $('#off').value : offK, off_offset: ['sunset', 'sunrise'].includes(offK) ? +$('#off-offset').value : 0,
-          off_after: +$('#off-after').value};
+          off_after: +$('#off-after').value, fade: +$('#fade').value};
 }
 function showSchedParts() {
   const onK = $('#on-kind').value, offK = $('#off-kind').value, sun = ['sunset', 'sunrise'];
@@ -1132,6 +1133,8 @@ function fillSched(s) {
   showSchedParts();
   $('#on-offset').value = r.on_offset; $('#off-offset').value = r.off_offset;
   $('#off-after').value = AFTER.includes(r.off_after) ? r.off_after : 360;
+  $('#fade').innerHTML = s.fades.map(v => `<option value="${v}">${!v ? 'No fade' : v < 60 ? `Over ${v} seconds` : `Over ${v / 60} minute${v === 60 ? '' : 's'}`}</option>`).join('');
+  $('#fade').value = r.fade || 0;
   $('#lat').value = s.location?.lat ?? ''; $('#lon').value = s.location?.lon ?? '';
   schedDirty();
 }
@@ -1139,12 +1142,12 @@ function schedDirty() {
   if (!state) return;
   const f = schedForm(), r = state.schedule.rule;
   const same = f.on === r.on_at && f.on_offset === r.on_offset && f.off === r.off_at && f.off_offset === r.off_offset
-    && (f.off !== 'after' || f.off_after === r.off_after);
+    && (f.off !== 'after' || f.off_after === r.off_after) && f.fade === (r.fade || 0);
   $('#save').disabled = same;
 }
 ['on-kind', 'off-kind'].forEach(id => $('#' + id).addEventListener('change', showSchedParts));
 ['on', 'off', 'on-offset', 'off-offset', 'off-after'].forEach(id => $('#' + id).addEventListener('input', schedDirty));
-['on-offset', 'off-offset', 'off-after'].forEach(id => $('#' + id).addEventListener('change', schedDirty));
+['on-offset', 'off-offset', 'off-after', 'fade'].forEach(id => $('#' + id).addEventListener('change', schedDirty));
 // Locate me: the device's position where the browser allows it (secure pages only), else its time zone's main city.
 async function locateByZone() {
   const s = await api('/api/location', {timezone: Intl.DateTimeFormat().resolvedOptions().timeZone});

@@ -492,6 +492,64 @@ def sunrise(step=0.5, ramp=44.0, hold=8.0, night=3.0, lead=0.7):
     show.period = period; show.step = step
     return show
 
+UA_ROYAL, UA_SKY, UA_YELLOW, UA_GOLD = (0, 40, 255), (40, 150, 255), (255, 215, 0), (255, 165, 0)
+
+def ukraine_flag(step=0.5, period=12.0):
+    """The Ukrainian flag along the string: blue on the first half, yellow on the second. The boundary sways
+    a few bulbs either way and a lighter ripple runs along each half, like the flag waving."""
+    tau = 2 * math.pi
+    def show(t):
+        t = int(t / step) * step
+        u = t / period
+        edge = TOTAL / 2 + round(TOTAL / 16 * math.sin(tau * u))           # the boundary sways
+        out = []
+        for x in range(TOTAL):
+            crest = math.sin(tau * (2 * u - x / (TOTAL / 3))) > 0.55        # a ripple travelling along
+            if x < edge: out.append(UA_SKY if crest else UA_ROYAL)
+            else:        out.append(UA_GOLD if crest else UA_YELLOW)
+        return out
+    show.period = period; show.step = step
+    return show
+
+def sunflowers(step=0.5, period=24.0):
+    """Sunflowers on a blue sky: here and there a flower opens (a gold centre, then yellow petals either
+    side), holds, then folds back into the sky, each at its own time and place."""
+    rnd = random.Random(380)
+    n = max(3, TOTAL // 8)
+    spots = sorted(rnd.sample(range(2, max(3, TOTAL - 2)), n))
+    flowers = [(x, rnd.random() * period) for x in spots]          # (where, when it starts opening)
+    life = 8.0                                                      # seconds from bud to folded
+    def show(t):
+        t = (int(t / step) * step) % period
+        out = [UA_SKY if (x // 4) % 3 == 0 else UA_ROYAL for x in range(TOTAL)]   # a sky with a little texture
+        for x, start in flowers:
+            a = (t - start) % period
+            if a >= life: continue
+            size = 0 if a < 1 else 1 if a < 2 or a >= life - 1.5 else 2   # bud, opening, open, folding
+            out[x] = UA_GOLD
+            for d in range(1, size + 1):
+                for y in (x - d, x + d):
+                    if 0 <= y < TOTAL: out[y] = UA_YELLOW
+        return out
+    show.period = period; show.step = step
+    return show
+
+def slava_ukraini():
+    """Slava Ukraini: three Ukrainian animations in turn, each for whole loops so it flows on cleanly: blue and
+    yellow stripes chasing (3 loops, about 22 s), the flag waving (2 loops, 24 s) and sunflowers opening (24 s)."""
+    parts = []
+    for fn, loops in ((chase(UKRAINE, 0.6), 3), (ukraine_flag(), 2), (sunflowers(), 1)):
+        parts.append((fn, fn.period * loops))
+    period = sum(d for _, d in parts)
+    def show(t):
+        t %= period
+        for fn, d in parts:
+            if t < d: return fn(t)
+            t -= d
+        return parts[-1][0](0)
+    show.period = period; show.step = 0.5
+    return show
+
 def goal_flash(pat, flash=0.4, sweep=4.0):
     """A goal celebration: first the goal light, a bright red beam sweeping back and forth over dim red
     like the rotating light behind the net, then the whole string flashing each team colour in turn."""
@@ -576,18 +634,45 @@ def fireworks(step=0.4, loop=150, launch=0.3, life=7):
 
 # Stripe patterns for still themes (three bulbs a stripe, so their Animate chase reads as movement)
 REDGREEN = [RED] * 3 + [GREEN] * 3
+UKRAINE = [(0, 40, 255)] * 3 + [(40, 150, 255)] * 3 + [(255, 215, 0)] * 3 + [(255, 165, 0)] * 3   # royal, sky, yellow, gold
 # Canadian NHL teams' colours, three bulbs a stripe. Black is an unlit bulb; navy and green are tuned for these LEDs.
 OFF, YELLOW, ORANGE_C9 = (0, 0, 0), (255, 180, 0), (255, 100, 0)
-NHL_TEAM = {'flames': 'CGY', 'oilers': 'EDM', 'canadiens': 'MTL', 'senators': 'OTT', 'leafs': 'TOR',
-            'canucks': 'VAN', 'jets': 'WPG'}       # hockey theme -> NHL team abbreviation, for game tracking
+NHL_TEAM = {'ducks': 'ANA', 'bruins': 'BOS', 'sabres': 'BUF', 'flames': 'CGY', 'hurricanes': 'CAR', 'blackhawks': 'CHI', 'avalanche': 'COL', 'bluejackets': 'CBJ', 'stars': 'DAL', 'redwings': 'DET', 'oilers': 'EDM', 'panthers': 'FLA', 'kings': 'LAK', 'wild': 'MIN', 'canadiens': 'MTL', 'predators': 'NSH', 'devils': 'NJD', 'islanders': 'NYI', 'rangers': 'NYR', 'senators': 'OTT', 'flyers': 'PHI', 'penguins': 'PIT', 'sharks': 'SJS', 'kraken': 'SEA', 'blues': 'STL', 'lightning': 'TBL', 'leafs': 'TOR', 'mammoth': 'UTA', 'canucks': 'VAN', 'goldenknights': 'VGK', 'capitals': 'WSH', 'jets': 'WPG'}   # hockey theme -> NHL team abbreviation
+# Team colours tuned for these LEDs: black is an unlit bulb, silver a soft grey.
+SILVER, NAVY, BURGUNDY, TEAL, ICE = (110, 110, 120), (0, 0, 150), (140, 0, 30), (0, 170, 160), (90, 200, 255)
 HOCKEY = {   # proportions follow each team's jersey, so teams that share colours still look different
-    'flames':    [RED] * 4 + [YELLOW] * 2 + [OFF],                                    # Calgary: red, gold flame, black edge
-    'oilers':    [BLUE] * 3 + [ORANGE_C9] * 3,                                        # Edmonton: blue, orange
-    'canadiens': [RED] * 4 + [WHITE] + [BLUE] * 2 + [WHITE],                          # Montréal: red, blue band in white
-    'senators':  [OFF] * 3 + [RED] * 2 + [YELLOW],                                    # Ottawa: black, red, gold trim
-    'leafs':     [BLUE] * 4 + [WHITE],                                                # Toronto: blue, one white stripe
-    'canucks':   [BLUE] * 3 + [WHITE] + [(0, 200, 60)] * 2 + [WHITE],                 # Vancouver: blue, green, white
-    'jets':      [(0, 0, 150)] * 4 + [(0, 120, 255)] * 2 + [RED],                     # Winnipeg: navy, sky blue, red
+    'ducks': [ORANGE_C9] * 3 + [YELLOW] * 2 + [OFF],                       # Anaheim Ducks
+    'bruins': [YELLOW] * 3 + [OFF] * 3,                                    # Boston Bruins
+    'sabres': [BLUE] * 3 + [YELLOW] + [WHITE],                             # Buffalo Sabres
+    'flames': [RED] * 4 + [YELLOW] * 2 + [OFF],                            # Calgary Flames
+    'hurricanes': [RED] * 3 + [SILVER] + [OFF] * 2,                        # Carolina Hurricanes
+    'blackhawks': [RED] * 4 + [WHITE] + [OFF] + [WHITE],                   # Chicago Blackhawks
+    'avalanche': [BURGUNDY] * 3 + [BLUE] * 2 + [SILVER],                   # Colorado Avalanche
+    'bluejackets': [NAVY] * 4 + [RED] + [WHITE],                           # Columbus Blue Jackets
+    'stars': [(0, 200, 60)] * 4 + [SILVER] + [OFF],                        # Dallas Stars
+    'redwings': [RED] * 5 + [WHITE],                                       # Detroit Red Wings
+    'oilers': [BLUE] * 3 + [ORANGE_C9] * 3,                                # Edmonton Oilers
+    'panthers': [RED] * 3 + [NAVY] * 2 + [YELLOW],                         # Florida Panthers
+    'kings': [OFF] * 3 + [SILVER] * 2 + [WHITE],                           # Los Angeles Kings
+    'wild': [(0, 110, 30)] * 4 + [RED] + [(255, 200, 90)],                 # Minnesota Wild
+    'canadiens': [RED] * 4 + [WHITE] + [BLUE] * 2 + [WHITE],               # Montréal Canadiens
+    'predators': [YELLOW] * 4 + [NAVY] * 2,                                # Nashville Predators
+    'devils': [RED] * 2 + [OFF] * 2,                                       # New Jersey Devils
+    'islanders': [BLUE] * 3 + [WHITE] + [ORANGE_C9] * 2,                   # New York Islanders
+    'rangers': [BLUE] * 4 + [WHITE] + [RED] + [WHITE],                     # New York Rangers
+    'senators': [OFF] * 3 + [RED] * 2 + [YELLOW],                          # Ottawa Senators
+    'flyers': [ORANGE_C9] * 4 + [WHITE] + [OFF],                           # Philadelphia Flyers
+    'penguins': [OFF] * 3 + [YELLOW] * 2 + [WHITE],                        # Pittsburgh Penguins
+    'sharks': [TEAL] * 4 + [OFF] + [ORANGE_C9],                            # San Jose Sharks
+    'kraken': [ICE] * 3 + [NAVY] * 2 + [RED],                              # Seattle Kraken
+    'blues': [BLUE] * 3 + [NAVY] * 2 + [YELLOW],                           # St. Louis Blues
+    'lightning': [BLUE] * 2 + [WHITE],                                     # Tampa Bay Lightning
+    'leafs': [BLUE] * 4 + [WHITE],                                         # Toronto Maple Leafs
+    'mammoth': [OFF] * 2 + [(80, 170, 255)] * 3 + [WHITE],                 # Utah Mammoth
+    'canucks': [BLUE] * 3 + [WHITE] + [(0, 200, 60)] * 2 + [WHITE],        # Vancouver Canucks
+    'goldenknights': [YELLOW] * 3 + [SILVER] * 2 + [RED],                  # Vegas Golden Knights
+    'capitals': [RED] * 3 + [WHITE] + [NAVY] * 2,                          # Washington Capitals
+    'jets': [NAVY] * 4 + [(0, 120, 255)] * 2 + [RED],                      # Winnipeg Jets
 }
 BLUEWHITE = [BLUE] * 3 + [WHITE] * 3
 SILVERGOLD = [WHITE] * 3 + [GOLD] * 3
@@ -695,6 +780,7 @@ SHOWS = {
     'treetwinkle': twinkle_tree(),
     'sunsetmove': sunset_rise(),
     'sunrise':   sunrise(),
+    'ukraine':   slava_ukraini(),                        # stripes chasing, the flag waving, then sunflowers
     'eastermove': chase(EASTER_STRIPES, 0.6),               # the pastel stripes chasing along
     'fourthmove': fireworks(),
     'fourth':    lambda t: tile(FOURTH, TOTAL),                             # pastels blending and drifting along
@@ -864,10 +950,12 @@ def schedule_text(state):
             return f"{amt} {'before' if off < 0 else 'after'} {spec}"
         return f'at {spec}'
     on = when(st.get('on_at') or DEFAULT_ON, st.get('on_offset'))
+    f = fade_of(st)
+    fades = '' if not f else f", fading over {f // 60} min" if f >= 60 else f", fading over {f} s"
     if st.get('off_at') == 'after':
         h = int(st.get('off_after') or 360) / 60
-        return f"On {on}, for {h:g} hour{'s' if h != 1 else ''}"
-    return f"On {on}, off {when(st.get('off_at') or DEFAULT_OFF, st.get('off_offset'))}"
+        return f"On {on}, for {h:g} hour{'s' if h != 1 else ''}{fades}"
+    return f"On {on}, off {when(st.get('off_at') or DEFAULT_OFF, st.get('off_offset'))}{fades}"
 
 def parse_rule(on, off):
     """CLI: 'sunset-5' / 'sunrise+10' / '16:00', and '6h' / 'sunrise' / '00:00'. -> zone fields or raises ValueError."""
@@ -886,7 +974,7 @@ def parse_rule(on, off):
 # state.json holds  zones: [{id, name, strings: [device names], show, speeds, brightness, override, on_at, off_at,
 # on_offset, off_offset, off_after}] plus customs, effect_names and location shared by every zone. Older single-zone state is read as one zone.
 ZONE_KEYS = ('show', 'speeds', 'brightness', 'override', 'on_at', 'off_at', 'on_offset', 'off_offset', 'off_after',
-             'follow', 'game_power', 'goal_delay', 'celebrate', 'skip_game')
+             'follow', 'game_power', 'goal_delay', 'celebrate', 'skip_game', 'fade')
 def zones_of(st):
     if st.get('zones'): return st['zones']
     z = {k: st[k] for k in ZONE_KEYS if k in st}
@@ -942,6 +1030,17 @@ def dim_effect(payload, b):
         for k in range(3): p[i + k] = round(p[i + k] * b)
     return bytes(p)
 
+# Schedule fades: the lights brighten from dark (or dim to dark) over this many seconds at the on/off time.
+FADES = [0, 5, 10, 20, 30, 60, 120, 300]
+def fade_of(state):
+    v = (state or {}).get('fade', 0)
+    return v if v in FADES else 0
+def fade_level(fade, now):
+    if not fade: return 1.0
+    kind, t0, secs = fade
+    x = max(0.0, min(1.0, (now - t0) / secs))
+    return x if kind == 'in' else 1 - x
+
 def speed_of(state, key=None):
     key = key or state.get('show')
     v = state.get('speeds', {}).get(key, 1)
@@ -954,6 +1053,7 @@ class Shared:
     def __init__(self):
         self.show = SHOWS[DEFAULT_SHOW]; self.t0 = time.time(); self.speed = 1.0; self.bright = 1.0; self.power = None; self.epoch = 0
         self.party = None; self.party_t0 = 0      # a goal celebration playing over the show, and when it started
+        self.fade = None                          # ('in' | 'out', started, seconds) while the schedule fades the lights
         self.game = None; self.game_show = None; self.game_t0 = 0   # game mode: the team's theme during its games
     def t(self, now): return (now - self.t0) * self.speed   # how far into the show we are, in show time
 
@@ -1026,7 +1126,7 @@ class String(threading.Thread):
                         self.send(DP_EFFECT, base64.b64encode(dim_effect(builtin, sh.bright)).decode(), now); self.shown = builtin
                 elif sh.power:
                     cur = party(now - sh.party_t0) if party else sh.game_show(now - sh.game_t0) if sh.game_show else sh.show(sh.t(now))
-                    part = dim(cur[self.offset:self.offset + self.size], sh.bright)
+                    part = dim(cur[self.offset:self.offset + self.size], sh.bright * fade_level(sh.fade, now))
                     # resend unchanged frames every 30 s so a string that missed one recovers
                     if part != self.shown or now - self.last_send > 30:
                         if self.shown is None: self.send(DP_SWITCH, True, now)
@@ -1166,8 +1266,10 @@ def run():
                         if now - req < 30: celebrate(sh, now, 'test')
                     speed = zm.speed_of(view)
                     key = view.get('show'); fn = zm.show_fn(key, view) or zm.SHOWS[DEFAULT_SHOW]
+                    fo = view.get('follow') if view.get('follow') in NHL_TEAM else None
+                    if fo and key == fo + 'move': fn = zm.chase(zm.HOCKEY[fo], 0.6)   # following: flashes only mean a goal
                     custom = json.dumps(view['customs'].get((key or '')[7:])) if (key or '').startswith('custom:') else ''
-                    sig = (key, custom, tuple(z['strings']))
+                    sig = (key, custom, tuple(z['strings']), fo)
                     if sig != sh.cur:                    # new show (or edited custom show): start from the top
                         zm.CONFETTI = random.sample(zm.RAINBOW, zm.TOTAL)
                         sh.cur = sig; sh.show = fn; sh.t0, sh.speed = now, speed; sh.epoch += 1
@@ -1200,7 +1302,7 @@ def run():
             gid = fo and watcher.teams.get(NHL_TEAM[fo], {}).get('active')
             game = fo + 'move' if gid and gid != sh.skip_game else None
             if game != sh.game:
-                sh.game = game; sh.game_show = sh.zm.SHOWS[game] if game else None; sh.game_t0 = now; sh.epoch += 1
+                sh.game = game; sh.game_show = sh.zm.chase(sh.zm.HOCKEY[fo], 0.6) if game else None; sh.game_t0 = now; sh.epoch += 1
                 log(f'{sh.name}: game on, playing {game}' if game else f'{sh.name}: game over, back to {sh.cur[0] if sh.cur else "its show"}')
                 write_engine = True
             if getattr(sh, 'pending', None) and now >= sh.pending[0]:
@@ -1210,8 +1312,23 @@ def run():
             ov = override(sh.view)
             want_on = is_on_hours(sh.view) if ov is None else ov
             if sh.game and sh.game_power and ov is not False: want_on = True     # lights on for the game
-            if want_on != sh.power:
-                log(f'{sh.name}: power', 'ON' if want_on else 'OFF'); sh.power = want_on; sh.epoch += 1
+            # The schedule can fade the lights in and out over `fade` seconds; the On/Off buttons are instant.
+            fade = fade_of(sh.view) if ov is None and not sh.game else 0
+            if want_on and not sh.power:
+                restart = sh.power is None                   # engine just started: come straight back, no fade
+                sh.power = True; sh.epoch += 1
+                sh.fade = ('in', now, fade) if fade and not restart else None
+                log(f'{sh.name}: power ON' + (f', fading in over {fade} s' if sh.fade else ''))
+            elif want_on and sh.fade and sh.fade[0] == 'out':
+                sh.fade = None; sh.epoch += 1                    # back on mid-fade: straight back to full
+            elif not want_on and sh.power:
+                if fade and not sh.fade:
+                    sh.fade = ('out', now, fade); log(f'{sh.name}: fading out over {fade} s')
+                elif not (sh.fade and sh.fade[0] == 'out' and now - sh.fade[1] < sh.fade[2]):
+                    sh.power = False; sh.fade = None; sh.epoch += 1; log(f'{sh.name}: power OFF')
+            elif not want_on and sh.power is None:
+                sh.power = False; sh.epoch += 1; log(f'{sh.name}: power OFF')
+            if sh.fade and sh.fade[0] == 'in' and now - sh.fade[1] >= sh.fade[2]: sh.fade = None
         if write_engine: save_engine()
         if now >= next_health:
             next_health = now + 5

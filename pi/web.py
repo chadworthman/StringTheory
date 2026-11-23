@@ -67,6 +67,7 @@ SHOW_INFO = [
     ('rainbowmove',  'Rainbow (moving)', 'The colour wheel rolling along the whole length.'),
     ('doublemove',   'Double rainbow (moving)', 'Two colour wheels end to end, rolling along together.'),
     ('fibonacci',    'Fibonacci',        'On a white string, golden-angle colours grow from the start 1, 2, 3, 5, 8, 13, 21, 34 bulbs until it is full, then give way to white from the start the same way, so the colour travels along.'),
+    ('ukraine',      'Slava Ukraini',    "Ukraine's blue and yellow, three ways in turn: stripes chasing along, the flag waving, then sunflowers opening on a blue sky."),
     ('chaos',        'Chaos',            'Colours changing at random, the whole string lurching about, sudden white bursts, strobes, and stretches of bulbs going dark.'),
     ('rainbow',      'Rainbow',          'The colour wheel in order, end to end.'),
     ('double',       'Double rainbow',   'The colour wheel twice, end to end.'),
@@ -95,20 +96,70 @@ SHOW_INFO = [
     ('silvergoldmove', 'Silver & gold (moving)', 'White and gold stripes chasing along.'),
     ('valentinesmove', "Valentine's Day (moving)", 'Red, pink and white stripes chasing along.'),
     ('canadamove',   'Canada Day (moving)', 'Red and white bands chasing along.'),
+    ('ducks', 'Anaheim Ducks', 'Mostly orange, with gold and a black (unlit) edge.'),
+    ('ducksmove', 'Anaheim Ducks (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('bruins', 'Boston Bruins', 'Gold and black (unlit) in equal stripes.'),
+    ('bruinsmove', 'Boston Bruins (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('sabres', 'Buffalo Sabres', 'Royal blue, with gold and white.'),
+    ('sabresmove', 'Buffalo Sabres (moving)', 'Its stripes chasing along, with the team colours flashing.'),
     ('flames', 'Calgary Flames', 'Mostly red, with a gold flame and a black (unlit) edge.'),
-    ('flamesmove', 'Calgary Flames (moving)', 'Red, gold and black chasing along, then flashing each team colour.'),
+    ('flamesmove', 'Calgary Flames (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('hurricanes', 'Carolina Hurricanes', 'Red, with a silver stripe and black (unlit).'),
+    ('hurricanesmove', 'Carolina Hurricanes (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('blackhawks', 'Chicago Blackhawks', 'Red, with the white-black-white jersey stripe.'),
+    ('blackhawksmove', 'Chicago Blackhawks (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('avalanche', 'Colorado Avalanche', 'Burgundy, blue and silver.'),
+    ('avalanchemove', 'Colorado Avalanche (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('bluejackets', 'Columbus Blue Jackets', 'Mostly navy, with red and white.'),
+    ('bluejacketsmove', 'Columbus Blue Jackets (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('stars', 'Dallas Stars', 'Victory green, with silver and black (unlit).'),
+    ('starsmove', 'Dallas Stars (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('redwings', 'Detroit Red Wings', 'Mostly red, with a single white stripe.'),
+    ('redwingsmove', 'Detroit Red Wings (moving)', 'Its stripes chasing along, with the team colours flashing.'),
     ('oilers', 'Edmonton Oilers', 'Blue and orange stripes, three bulbs each.'),
-    ('oilersmove', 'Edmonton Oilers (moving)', 'Blue and orange stripes chasing along, then flashing each team colour.'),
+    ('oilersmove', 'Edmonton Oilers (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('panthers', 'Florida Panthers', 'Red, navy and gold.'),
+    ('panthersmove', 'Florida Panthers (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('kings', 'Los Angeles Kings', 'Black (unlit), silver and white.'),
+    ('kingsmove', 'Los Angeles Kings (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('wild', 'Minnesota Wild', 'Forest green, with red and wheat.'),
+    ('wildmove', 'Minnesota Wild (moving)', 'Its stripes chasing along, with the team colours flashing.'),
     ('canadiens', 'Montréal Canadiens', 'Mostly red, with a blue band between white stripes.'),
-    ('canadiensmove', 'Montréal Canadiens (moving)', 'Red with a blue and white band chasing along, then flashing each team colour.'),
+    ('canadiensmove', 'Montréal Canadiens (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('predators', 'Nashville Predators', 'Mostly gold, with navy.'),
+    ('predatorsmove', 'Nashville Predators (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('devils', 'New Jersey Devils', 'Red and black (unlit), two bulbs each.'),
+    ('devilsmove', 'New Jersey Devils (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('islanders', 'New York Islanders', 'Royal blue, white and orange.'),
+    ('islandersmove', 'New York Islanders (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('rangers', 'New York Rangers', 'Mostly blue, with a red stripe between white.'),
+    ('rangersmove', 'New York Rangers (moving)', 'Its stripes chasing along, with the team colours flashing.'),
     ('senators', 'Ottawa Senators', 'Mostly black (unlit bulbs), with red and a gold trim.'),
-    ('senatorsmove', 'Ottawa Senators (moving)', 'Black, red and gold chasing along, then flashing each team colour.'),
+    ('senatorsmove', 'Ottawa Senators (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('flyers', 'Philadelphia Flyers', 'Mostly orange, with white and black (unlit).'),
+    ('flyersmove', 'Philadelphia Flyers (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('penguins', 'Pittsburgh Penguins', 'Black (unlit), gold and white.'),
+    ('penguinsmove', 'Pittsburgh Penguins (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('sharks', 'San Jose Sharks', 'Mostly teal, with black (unlit) and orange.'),
+    ('sharksmove', 'San Jose Sharks (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('kraken', 'Seattle Kraken', 'Ice blue, deep navy and a red accent.'),
+    ('krakenmove', 'Seattle Kraken (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('blues', 'St. Louis Blues', 'Blue, navy and a gold note.'),
+    ('bluesmove', 'St. Louis Blues (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('lightning', 'Tampa Bay Lightning', 'Blue and white, two to one.'),
+    ('lightningmove', 'Tampa Bay Lightning (moving)', 'Its stripes chasing along, with the team colours flashing.'),
     ('leafs', 'Toronto Maple Leafs', 'Mostly blue, with a single white stripe.'),
-    ('leafsmove', 'Toronto Maple Leafs (moving)', 'Blue with a white stripe chasing along, then flashing each team colour.'),
+    ('leafsmove', 'Toronto Maple Leafs (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('mammoth', 'Utah Mammoth', 'Black (unlit), mountain blue and white.'),
+    ('mammothmove', 'Utah Mammoth (moving)', 'Its stripes chasing along, with the team colours flashing.'),
     ('canucks', 'Vancouver Canucks', 'Blue and green, separated by white.'),
-    ('canucksmove', 'Vancouver Canucks (moving)', 'Blue, white and green chasing along, then flashing each team colour.'),
+    ('canucksmove', 'Vancouver Canucks (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('goldenknights', 'Vegas Golden Knights', 'Gold, steel grey and a red accent.'),
+    ('goldenknightsmove', 'Vegas Golden Knights (moving)', 'Its stripes chasing along, with the team colours flashing.'),
+    ('capitals', 'Washington Capitals', 'Red, white and navy.'),
+    ('capitalsmove', 'Washington Capitals (moving)', 'Its stripes chasing along, with the team colours flashing.'),
     ('jets', 'Winnipeg Jets', 'Mostly navy, with sky blue and a red accent.'),
-    ('jetsmove', 'Winnipeg Jets (moving)', 'Navy, sky blue and red chasing along, then flashing each team colour.'),
+    ('jetsmove', 'Winnipeg Jets (moving)', 'Its stripes chasing along, with the team colours flashing.'),
     ('fourthchase',  'Fourth of July (moving)', 'Red, white and blue stripes chasing along.'),
     ('goldenanglemove', 'Golden angle (moving)', 'The golden-angle colours rolling along.'),
     ('fourth',       'Fourth of July',   'Red, white and blue stripes, three bulbs each.'),
@@ -134,9 +185,9 @@ GROUPS = [
                   'fourth', 'fourthmove', 'halloweenstill', 'halloween', 'hanukkah']),
     ('Seasonal', ['winter', 'fireside', 'spooky']),
     ('Colour', ['rainbow', 'double', 'confetti', 'goldenangle', 'goldenanglemove', 'sunset', 'sunrise',
-                'rainbowmove', 'doublemove', 'jostle', 'sunsetmove', 'fibonacci', 'embers', 'chaos']),
+                'rainbowmove', 'doublemove', 'jostle', 'sunsetmove', 'fibonacci', 'ukraine', 'embers', 'chaos']),
     ('Just for fun', ['rainbows', 'party']),
-    ('Hockey', ['flames', 'flamesmove', 'oilers', 'oilersmove', 'canadiens', 'canadiensmove', 'senators', 'senatorsmove', 'leafs', 'leafsmove', 'canucks', 'canucksmove', 'jets', 'jetsmove']),
+    ('Hockey', ['ducks', 'ducksmove', 'bruins', 'bruinsmove', 'sabres', 'sabresmove', 'flames', 'flamesmove', 'hurricanes', 'hurricanesmove', 'blackhawks', 'blackhawksmove', 'avalanche', 'avalanchemove', 'bluejackets', 'bluejacketsmove', 'stars', 'starsmove', 'redwings', 'redwingsmove', 'oilers', 'oilersmove', 'panthers', 'panthersmove', 'kings', 'kingsmove', 'wild', 'wildmove', 'canadiens', 'canadiensmove', 'predators', 'predatorsmove', 'devils', 'devilsmove', 'islanders', 'islandersmove', 'rangers', 'rangersmove', 'senators', 'senatorsmove', 'flyers', 'flyersmove', 'penguins', 'penguinsmove', 'sharks', 'sharksmove', 'kraken', 'krakenmove', 'blues', 'bluesmove', 'lightning', 'lightningmove', 'leafs', 'leafsmove', 'mammoth', 'mammothmove', 'canucks', 'canucksmove', 'goldenknights', 'goldenknightsmove', 'capitals', 'capitalsmove', 'jets', 'jetsmove']),
     ('Tests', ['seams', 'walk', 'strings', 'allwhite', 'quad']),
 ]
 GROUP_OF = {k: g for g, keys in GROUPS for k in keys}
@@ -157,9 +208,8 @@ MOVING_OF = {'classic': 'chase5', 'tree': 'treetwinkle', 'candystill': 'candycan
              # the rest simply chase their stripes
              'redgreen': 'redgreenmove', 'bluewhite': 'bluewhitemove', 'silvergold': 'silvergoldmove', 'holly': 'hollymove',
              'peppermint': 'peppermintmove', 'canada': 'canadamove', 'valentines': 'valentinesmove', 'fourth': 'fourthchase',
-             'goldenangle': 'goldenanglemove',
-             **{k: k + 'move' for k in ('flames', 'oilers', 'canadiens', 'senators', 'leafs', 'canucks', 'jets')}}
-VARIANTS = set(MOVING_OF.values())
+             'goldenangle': 'goldenanglemove'}
+VARIANTS = set(MOVING_OF.values()) | {k + 'move' for k in L.NHL_TEAM}   # hockey moves: game mode and playlists only
 
 TESTS = {'seams', 'walk', 'strings', 'allwhite', 'quad'}   # shown on the page's Tests tab
 
@@ -268,7 +318,7 @@ def state_payload(zid=None):
         item = {'id': key, 'name': name, 'desc': desc, 'preview': hexes(fn(0)), 'group': GROUP_OF.get(key, ''),
                 'speed': zm.speed_of(view, key), 'max_speed': zm.max_speed(key, view),
                 'animated': bool(getattr(fn, 'period', 0)),
-                'kind': 'test' if key in TESTS else 'moving' if getattr(fn, 'period', 0) else 'still'}
+                'kind': 'test' if key in TESTS else 'hockey' if key in L.NHL_TEAM else 'moving' if getattr(fn, 'period', 0) else 'still'}
         if key == 'seasonal': item['desc'] = autopilot_desc(); item['kind'] = 'moving'
         if getattr(fn, 'items', None) and not key.startswith('custom:'):           # built-in playlist
             item['playlist'] = fn.items; item['kind'] = 'playlist'
@@ -299,7 +349,8 @@ def state_payload(zid=None):
         'schedule': {'on': f'{on:%H:%M}', 'off': f'{off:%H:%M}', 'on_date': f'{on:%Y-%m-%d}', 'text': L.schedule_text(view),
                      'rule': {'on_at': view.get('on_at') or L.DEFAULT_ON, 'on_offset': int(view.get('on_offset') or 0),
                               'off_at': view.get('off_at') or L.DEFAULT_OFF, 'off_offset': int(view.get('off_offset') or 0),
-                              'off_after': int(view.get('off_after') or 360)}},
+                              'off_after': int(view.get('off_after') or 360), 'fade': L.fade_of(view)}},
+        'fades': L.FADES,
         'location': ({'lat': L.location_of(st)[0], 'lon': L.location_of(st)[1],
                       'name': (st.get('location') or {}).get('name') or 'your location'} if L.location_of(st) else None),
         'mode': 'auto' if ov is None else ('on' if ov else 'off'),
@@ -463,7 +514,8 @@ class Handler(BaseHTTPRequestHandler):
             if not (isinstance(v, int) and 0 <= v <= 120): return self.send(400, {'error': 'Pick a delay of 0 to 120 seconds.'})
             zone['goal_delay'] = v
         elif path == '/api/celebrate':
-            if not zone.get('follow'): return self.send(400, {'error': 'Pick a team to follow first.'})
+            if not (zone.get('follow') or str(zone.get('show', '')).removesuffix('move') in L.NHL_TEAM):
+                return self.send(400, {'error': 'Play a hockey theme, or follow a team, to test the celebration.'})
             zone['celebrate'] = time.time()
         elif path == '/api/brightness':
             b = body.get('brightness')
@@ -537,6 +589,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(400, {'error': 'Set your location first, so String Theory can work out sunset.'})
             if on == off and on not in sun:
                 return self.send(400, {'error': 'On and off times need to be different.'})
+            fade = body.get('fade', zone.get('fade', 0))
+            if fade not in L.FADES: return self.send(400, {'error': 'Pick a fade time from the list.'})
+            zone['fade'] = fade
             zone.update(on_at=on, on_offset=on_off if on in sun else 0, off_at=off,
                         off_offset=off_off if off in sun else 0, off_after=after if off == 'after' else zone.get('off_after', 360))
         elif path == '/api/location':

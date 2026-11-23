@@ -115,8 +115,9 @@
       const m = Math.abs(off), amt = m >= 60 ? (m % 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m / 60} h`) : `${m} min`;
       return `${amt} ${off < 0 ? 'before' : 'after'} ${spec}`;
     };
-    if (r.off_at === 'after') { const h = (r.off_after || 360) / 60; return `On ${when(r.on_at, r.on_offset)}, for ${h} hour${h === 1 ? '' : 's'}`; }
-    return `On ${when(r.on_at, r.on_offset)}, off ${when(r.off_at, r.off_offset)}`;
+    const f = r.fade || 0, fades = !f ? '' : f >= 60 ? `, fading over ${f / 60} min` : `, fading over ${f} s`;
+    if (r.off_at === 'after') { const h = (r.off_after || 360) / 60; return `On ${when(r.on_at, r.on_offset)}, for ${h} hour${h === 1 ? '' : 's'}${fades}`; }
+    return `On ${when(r.on_at, r.on_offset)}, off ${when(r.off_at, r.off_offset)}${fades}`;
   }
 
   function payload(D) {
@@ -178,8 +179,9 @@
         if (!(time(on) || SUN.includes(on)) || !(time(off) || SUN.includes(off) || off === 'after')) return no('Pick a time, sunset or sunrise.');
         if ((SUN.includes(on) || SUN.includes(off)) && !st.location) return no('Set your location first, so String Theory can work out sunset.');
         if (on === off && !SUN.includes(on)) return no('On and off times need to be different.');
+        if (body.fade !== undefined && !D.state.fades.includes(body.fade)) return no('Pick a fade time from the list.');
         st.rule = {on_at: on, on_offset: SUN.includes(on) ? body.on_offset || 0 : 0, off_at: off,
-                   off_offset: SUN.includes(off) ? body.off_offset || 0 : 0, off_after: body.off_after || 360};
+                   off_offset: SUN.includes(off) ? body.off_offset || 0 : 0, off_after: body.off_after || 360, fade: body.fade || 0};
         break;
       }
       case '/api/location': {
