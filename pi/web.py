@@ -283,12 +283,16 @@ def state_payload(zid=None):
         if key in VARIANTS: item['kind'] = 'variant'          # reached through its still card's Animate switch
         shows.append(item)
     zstrings = L.zone_strings(zone)
+    try: eng = json.loads(L.ENGINE.read_text()).get('zones', {}).get(zone['id'], {})
+    except (OSError, ValueError): eng = {}
+    game = eng.get('game') if zone.get('follow') else None   # game mode: the engine is playing the team's theme
     return {
         'zone': zone['id'],
         'zones': [{'id': z['id'], 'name': z.get('name') or 'Lights', 'strings': [n for n, _ in L.zone_strings(z)]}
                   for z in L.zones_of(st)],
         'all_strings': [{'name': n, 'label': string_label(n), 'bulbs': b} for n, b in L.STRINGS],
-        'show': view.get('show', L.DEFAULT_SHOW),
+        'show': game or view.get('show', L.DEFAULT_SHOW),
+        'game_mode': bool(game),
         'lights_name': zone.get('name') or DEFAULT_NAME,
         'shows': shows,
         # on/off: the times of the on-period happening now (else the next one); rule: how they're worked out
@@ -301,13 +305,16 @@ def state_payload(zid=None):
         'mode': 'auto' if ov is None else ('on' if ov else 'off'),
         'override_until': (datetime.datetime.fromtimestamp(zone['override']['until']).strftime('%H:%M')
                            if ov is not None else None),
-        'lit': bool(zstrings) and (L.is_on_hours(view) if ov is None else ov),
-        'started': show_started(view, zm),
+        'lit': bool(zstrings) and (bool(game and zone.get('game_power', True) and ov is not False)
+                                   or (L.is_on_hours(view) if ov is None else ov)),
+        'started': eng.get('game_t0') if game else show_started(view, zm),
         'speeds': [s for s in L.SPEEDS],
         'brightness': L.brightness_of(view),
-        'track': zone.get('track') if zone.get('track') in L.NHL_TEAM and view.get('show') in (zone.get('track'), str(zone.get('track')) + 'move') else None,
+        'follow': zone.get('follow') if zone.get('follow') in L.NHL_TEAM else None,
+        'game_power': zone.get('game_power', True),
+        'teams': [{'id': k, 'name': n} for k, n, _ in SHOW_INFO if k in L.NHL_TEAM],
         'goal_delay': int(zone.get('goal_delay') or 0),
-        'hockey': hockey_status(zone.get('track')),
+        'hockey': hockey_status(zone.get('follow')),
         'brightnesses': list(L.BRIGHTNESS),
         'strings': [{'label': string_label(n), 'name': n, 'bulbs': b} for n, b in zstrings],
         'total': zm.TOTAL if zstrings else 0,
@@ -419,8 +426,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/show':
             if zm.show_fn(body.get('show'), view) is None: return self.send(400, {'error': 'Unknown show.'})
             zone['show'] = body['show']
-            tr = zone.get('track')                       # picking another theme stops following that team's games
-            if tr and body['show'] not in (tr, tr + 'move'): zone.pop('track', None)
+            hs = hockey_status(zone.get('follow'))       # picked mid-game: the game hands the lights back until the next one
+            if hs and hs.get('active') and body['show'] != zone['follow'] + 'move': zone['skip_game'] = hs['active']
         elif path == '/api/power':
             mode = body.get('mode')
             if mode == 'auto':
@@ -443,22 +450,20 @@ class Handler(BaseHTTPRequestHandler):
             if speed not in L.SPEEDS or speed > zm.max_speed(key, view):
                 return self.send(400, {'error': f'Pick a speed from {L.SPEEDS[0]}x to {zm.max_speed(key, view)}x.'})
             zone.setdefault('speeds', {})[key] = speed
-        elif path == '/api/track':
-            # Follow a hockey team's games and celebrate its goals (only while its theme plays).
-            key = body.get('show')
-            if key not in L.NHL_TEAM: return self.send(400, {'error': 'Game tracking works with the hockey themes.'})
-            if body.get('on'):
-                zone['track'] = key
-                play = body.get('play') if body.get('play') in (key, key + 'move') else key
-                if zone.get('show') not in (key, key + 'move'): zone['show'] = play
-            elif zone.get('track') == key:
-                zone.pop('track', None)
+        elif path == '/api/follow':
+            # Follow a team (its theme key, e.g. 'leafs') or stop (null). game_power: lights on for its games.
+            key = body.get('team')
+            if key is not None and key not in L.NHL_TEAM: return self.send(400, {'error': 'Pick one of the hockey teams.'})
+            if key: zone['follow'] = key
+            else: zone.pop('follow', None)
+            if isinstance(body.get('game_power'), bool): zone['game_power'] = body['game_power']
+            zone.pop('skip_game', None)
         elif path == '/api/goal-delay':
             v = body.get('seconds')
             if not (isinstance(v, int) and 0 <= v <= 120): return self.send(400, {'error': 'Pick a delay of 0 to 120 seconds.'})
             zone['goal_delay'] = v
         elif path == '/api/celebrate':
-            if not zone.get('track'): return self.send(400, {'error': 'Turn on Track games & goals first.'})
+            if not zone.get('follow'): return self.send(400, {'error': 'Pick a team to follow first.'})
             zone['celebrate'] = time.time()
         elif path == '/api/brightness':
             b = body.get('brightness')

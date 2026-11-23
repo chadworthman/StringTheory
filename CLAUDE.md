@@ -80,9 +80,10 @@ DP numbers are `DP_SWITCH`, `DP_PAINT` and `DP_EFFECT` at the top of `lights.py`
 
 ## Hockey game tracking
 
-- Zone keys: `track` (a hockey theme key such as `leafs`; `NHL_TEAM` maps it to the NHL abbreviation), `goal_delay` (seconds) and `celebrate` (a timestamp from **Test celebration**). `/api/show` clears `track` when another theme is picked; the engine also ignores it unless that team's still or moving theme is playing.
-- `HockeyWatcher` (a thread in the engine) is the only code that goes online, and only for tracked teams. It reads `api-web.nhle.com/v1/club-schedule/<TEAM>/week/now` every 3 hours, and `/v1/gamecenter/<id>/landing` every 30 s from 15 min before puck drop, then every 5 s while `LIVE`/`CRIT`. A rise in the team's score queues a celebration at detection time + `goal_delay`. It writes `hockey.json` for the page. Joining mid-game takes the current score as the baseline, so old goals don't fire.
-- A celebration sets `Shared.party` (a `goal_flash()` of the team's colours) for `GOAL_SECS`, and the string workers play it instead of the show.
+- Zone keys: `follow` (a hockey theme key such as `leafs`; `NHL_TEAM` maps it to the NHL abbreviation), `game_power` (lights on for games, default true), `goal_delay` (seconds), `celebrate` (a timestamp from **Test celebration**) and `skip_game` (a game id: picking a show mid-game hands the lights back until the next game). Set from Setup → Hockey or the pop-up that offers to follow a team when its theme is picked (asked once per team per device, `localStorage asked-follow:<key>`).
+- `HockeyWatcher` (a thread in the engine) is the only code that goes online, and only for followed teams. It reads `api-web.nhle.com/v1/club-schedule/<TEAM>/week/now` every 3 hours, and `/v1/gamecenter/<id>/landing` every 30 s from 15 min before puck drop, then every 5 s while `LIVE`/`CRIT`. A rise in the team's score queues a celebration at detection time + `goal_delay`. It writes `hockey.json` (with `active` = the game id during game mode) for the page. Joining mid-game takes the current score as the baseline.
+- Game mode: from 15 min before puck drop until `FINAL`, the engine plays `<team>move` (`Shared.game_show`) instead of the zone's show, without changing `state.json`, and turns the lights on if `game_power`. `engine.json` carries `game` and `game_t0`; `web.py` then reports that as the show (`game_mode: true`).
+- A celebration (`goal_flash()`: a red goal-light beam sweeping over dim red, then team-colour flashes) sets `Shared.party` for `GOAL_SECS`; the string workers play it over everything.
 - The demo can't follow games, so it answers these endpoints with an explanation.
 
 ## Zones

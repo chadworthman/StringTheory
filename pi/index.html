@@ -253,8 +253,15 @@
                background: var(--night); color: var(--text); border: 1px solid var(--edge); border-radius: var(--r-sm);
                padding: 8px 10px; font: inherit; font-size: 17px; }
   .loc { margin-top: 14px; display: grid; gap: 12px; }
-  .hockey { margin-top: 12px; background: var(--panel); border: 1px solid var(--edge); border-radius: var(--r-lg); padding: 14px 16px; display: grid; gap: 10px; }
+  .hockey { display: grid; gap: 12px; }
   .hockey p { margin: 0; }
+  .hockey-now { margin: 10px 4px 0; color: var(--muted); font-size: 15px; }
+  .hockey-now strong { color: var(--amber); }
+  dialog.ask { max-width: min(420px, calc(100vw - 32px)); background: var(--panel); color: var(--text); border: 1px solid var(--edge);
+               border-radius: var(--r-lg); padding: 20px; }
+  dialog.ask::backdrop { background: rgba(0, 0, 0, .55); }
+  dialog.ask h2 { margin: 0 0 8px; } dialog.ask p { color: var(--muted); margin: 0 0 16px; }
+  .ask-buttons { display: grid; gap: 10px; } .ask-buttons .save { margin: 0; }
   .hockey .hk-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
   .hockey select { display: block; width: 100%; min-height: 44px; background: var(--night); color: var(--text); border: 1px solid var(--edge);
                    border-radius: var(--r-sm); padding: 6px 10px; font: inherit; }
@@ -319,14 +326,7 @@
       <button type="button" class="btn2" id="change-show">Change show</button>
     </div>
 
-    <div class="hockey" id="hockey" hidden>
-      <p id="hk-status"></p>
-      <div class="hk-row">
-        <label>Goal delay <select id="hk-delay"></select></label>
-        <button type="button" class="btn2" id="hk-test">Test celebration</button>
-      </div>
-      <p class="note">Goals come from the NHL's live scores, a few seconds after they happen. TV and streams usually run behind, so set the delay until the lights match your screen.</p>
-    </div>
+    <p class="hockey-now" id="hockey-now" hidden></p>
 
     <h2 id="power-h">Power</h2>
     <div class="power" role="group" aria-labelledby="power-h">
@@ -463,6 +463,19 @@
       <button class="save" type="submit" id="save" disabled>Save schedule</button>
     </form>
 
+    <h2 id="hockey-h">Hockey</h2>
+    <div class="sched hockey">
+      <label>Follow a team <select id="hk-team"></select></label>
+      <p class="note">During every game the lights switch to the team's show and celebrate each goal with a red goal light and the team's colours, then go back to your show. Pick another show mid-game to take the lights back until the next game.</p>
+      <label class="switch"><input type="checkbox" role="switch" id="hk-power"><span>Turn the lights on for games</span></label>
+      <div class="hk-row">
+        <label>Goal delay <select id="hk-delay"></select></label>
+        <button type="button" class="btn2" id="hk-test">Test celebration</button>
+      </div>
+      <p class="note">Goals come from the NHL's live scores, a few seconds after they happen. TV and streams usually run behind, so set the delay until the lights match your screen.</p>
+      <p class="hint" id="hk-status"></p>
+    </div>
+
     <h2 id="zones-h">Zones</h2>
     <div class="sched">
       <p class="note">A zone is a group of strings with its own name, show, speed, power and schedule. Each string belongs to one zone. Saved patterns and playlists work in every zone.</p>
@@ -487,6 +500,12 @@
     <button type="button" data-view="create" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.7-.8 1.7-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.6 1.7-1.6h2a4.1 4.1 0 0 0 4.1-4.1C20.5 6.9 16.7 3.5 12 3.5Z"/><circle cx="7.6" cy="11.5" r="1.1"/><circle cx="10" cy="7.6" r="1.1"/><circle cx="14.6" cy="7.6" r="1.1"/></svg>Create</button>
     <button type="button" data-view="setup" aria-current="false"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>Setup</button>
 </nav>
+<dialog class="ask" id="follow-ask">
+  <h2 id="fa-title">Follow this team?</h2>
+  <p id="fa-text"></p>
+  <div class="ask-buttons"><button type="button" class="save" id="fa-yes">Follow every game</button>
+    <button type="button" class="btn2 wide" id="fa-no">Not now</button></div>
+</dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -674,8 +693,7 @@ function render(s) {
       </button>${x.link ? `<a class="more" href="${esc(x.link.url)}" title="${esc(x.link.title)}" target="_blank" rel="noopener">${esc(x.link.text)}</a>` : ''}${x.spec && x.kind !== 'draft' ? `<div class="card-actions">
         <button type="button" data-edit="${x.id}">Edit</button><button type="button" data-del="${x.id}">Delete</button></div>`
         : x.playlist ? `<div class="card-actions"><button type="button" data-copy="${x.id}">Edit a copy</button></div>`
-        : x.moving_id ? `<label class="switch"><input type="checkbox" role="switch" data-pair="${x.id}"><span>Animate</span></label>${x.team
-          ? `<label class="switch"><input type="checkbox" role="switch" data-track="${x.id}"><span>Track games &amp; goals</span></label>` : ''}</div>` : ''}</li>`;
+        : x.moving_id ? `<label class="switch"><input type="checkbox" role="switch" data-pair="${x.id}"><span>Animate</span></label></div>` : ''}</li>`;
     }).join('');
     ul.querySelectorAll('.show').forEach((b, i) => wire(b.querySelector('.wire'), s.shows[i].preview));
   }
@@ -688,7 +706,6 @@ function render(s) {
     }
     b.setAttribute('aria-pressed', b.dataset.id === s.show || (!!m && m === s.show));
   });
-  ul.querySelectorAll('input[data-track]').forEach(t => t.checked = s.track === t.dataset.track);   // off once another theme plays
   if (!tab && location.hash === '#newplaylist') { tab = 'custom'; edMode = 'playlist'; showView('create'); }
   // Start on the tab named in the link (#still etc.), else the last tab chosen on this phone, else Still.
   const TABS = ['still', 'moving', 'playlist', 'custom', 'test'];
@@ -743,25 +760,52 @@ function showBright() {
   $('#bright-val').textContent = brightLabel(v); $('#bright').setAttribute('aria-valuetext', brightLabel(v));
   $('#hero').style.setProperty('--dim', (0.35 + 0.65 * v).toFixed(2));
 }
-// Hockey: what the game watcher knows, the goal delay and a test celebration.
+// Hockey: follow a team (Setup), game status, goal delay, test celebration, and the ask when a team's theme is picked.
 $('#hk-delay').innerHTML = [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120].map(v => `<option value="${v}">${v ? v + ' seconds' : 'None'}</option>`).join('');
-function showHockey(s) {
-  $('#hockey').hidden = !s.track; if (!s.track) return;
-  const team = s.shows.find(x => x.id === s.track)?.name || 'your team', h = s.hockey;
+function hockeyText(s) {
+  if (!s.follow) return '';
+  const team = s.teams.find(t => t.id === s.follow)?.name || 'your team', short = team.split(' ').pop(), h = s.hockey;
   const when = t => new Date(t * 1000).toLocaleString([], {weekday: 'short', hour: 'numeric', minute: '2-digit'});
-  const vs = g => `${g.home ? 'vs' : 'at'} ${g.opp}`;
-  let text = `Following ${team} games. Goals light up the string.`;
-  const g = h?.game;
-  if (g && ['LIVE', 'CRIT'].includes(g.state)) text = `Live ${vs(g)}: ${team.split(' ').pop()} ${g.score ?? 0}, ${g.opp} ${g.opp_score ?? 0}${g.period ? ` (period ${g.period})` : ''}.`;
-  else if (g) text = `Game ${vs(g)} starts ${when(g.start)}. Watching for goals.`;
-  else if (h?.next) text = `Following ${team}. Next game ${vs(h.next)}, ${when(h.next.start)}.`;
-  $('#hk-status').textContent = text;
-  if (document.activeElement !== $('#hk-delay')) $('#hk-delay').value = s.goal_delay;
+  const vs = g => `${g.home ? 'vs' : 'at'} ${g.opp}`, g = h?.game;
+  if (g && ['LIVE', 'CRIT'].includes(g.state)) return `${short} game on ${vs(g)}: ${short} ${g.score ?? 0}, ${g.opp} ${g.opp_score ?? 0}${g.period ? `, period ${g.period}` : ''}.`;
+  if (h?.active) return `${short} game ${vs(g)} starting ${when(g.start)}.`;
+  if (h?.next) return `Following the ${team}. Next game ${vs(h.next)}, ${when(h.next.start)}.`;
+  return `Following the ${team}.`;
 }
+function showHockey(s) {
+  const sel = $('#hk-team');
+  if (sel.options.length !== s.teams.length + 1)
+    sel.innerHTML = '<option value="">No team</option>' + s.teams.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  if (document.activeElement !== sel) sel.value = s.follow || '';
+  $('#hk-power').checked = s.game_power;
+  document.querySelectorAll('#hk-power, #hk-delay, #hk-test').forEach(el => el.disabled = !s.follow);
+  if (document.activeElement !== $('#hk-delay')) $('#hk-delay').value = s.goal_delay;
+  $('#hk-status').textContent = hockeyText(s);
+  $('#hockey-now').hidden = !s.follow;
+  $('#hockey-now').innerHTML = s.game_mode ? `<strong>Game mode.</strong> ${esc(hockeyText(s))}` : esc(hockeyText(s));
+}
+$('#hk-team').addEventListener('change', async e => {
+  const t = state.teams.find(x => x.id === e.target.value);
+  if (await api('/api/follow', {team: e.target.value || null})) toast(t ? `Following the ${t.name}` : 'Not following a team');
+});
+$('#hk-power').addEventListener('change', e => api('/api/follow', {team: state.follow, game_power: e.target.checked}));
 $('#hk-delay').addEventListener('change', async e => {
   if (await api('/api/goal-delay', {seconds: +e.target.value})) toast(`Goal delay: ${+e.target.value ? e.target.value + ' seconds' : 'none'}`);
 });
 $('#hk-test').addEventListener('click', async () => { if (await api('/api/celebrate', {})) toast('Goal!'); });
+function askFollow(id) {               // picked a team's theme: offer to follow its games (once per team on this device)
+  const key = id.replace(/move$/, ''), t = state?.teams.find(x => x.id === key);
+  if (!t || state.follow === key || localStorage.getItem('asked-follow:' + key)) return;
+  $('#fa-title').textContent = `Follow the ${t.name}?`;
+  $('#fa-text').textContent = `During every ${t.name.split(' ').pop()} game, the lights switch to this show and celebrate each goal with a red goal light and the team's colours, then go back to your usual show. You can change this in Setup.`;
+  $('#follow-ask').dataset.team = key; $('#follow-ask').showModal();
+}
+$('#fa-yes').addEventListener('click', async () => {
+  const d = $('#follow-ask'); d.close(); localStorage.setItem('asked-follow:' + d.dataset.team, '1');
+  const t = state.teams.find(x => x.id === d.dataset.team);
+  if (await api('/api/follow', {team: d.dataset.team})) toast(`Following the ${t.name}`);
+});
+$('#fa-no').addEventListener('click', () => { const d = $('#follow-ask'); d.close(); localStorage.setItem('asked-follow:' + d.dataset.team, '1'); });
 $('#bright').addEventListener('input', showBright);
 $('#bright').addEventListener('change', async () => {
   const v = state.brightnesses[+$('#bright').value];
@@ -1000,15 +1044,7 @@ $('#shows').addEventListener('change', async e => {
   const b = $(`#shows .show[data-id="${box.dataset.pair}"]`), name = b.querySelector('.name').textContent;
   setPlay(b, box.checked); tick();
   // Flipping the switch picks this card: plays its animated (on) or still (off) version.
-  if (await api('/api/show', {show: b.dataset.play})) toast(`Playing ${name}${box.checked ? ', animated' : ''}`);
-});
-// Track games & goals (hockey themes): plays the card and follows that team's NHL games until another theme is picked.
-$('#shows').addEventListener('change', async e => {
-  const box = e.target.closest('input[data-track]'); if (!box) return;
-  const b = $(`#shows .show[data-id="${box.dataset.track}"]`), name = b.querySelector('.name').textContent;
-  const s = await api('/api/track', {show: box.dataset.track, on: box.checked, play: b.dataset.play || box.dataset.track});
-  if (s) toast(box.checked ? `Following ${name} games: goals light up the string` : `Stopped following ${name} games`);
-  else box.checked = !box.checked;
+  if (await api('/api/show', {show: b.dataset.play})) { toast(`Playing ${name}${box.checked ? ', animated' : ''}`); askFollow(b.dataset.id); }
 });
 
 // The S-shaped wire from the end of each string, down under its bulbs, back to the start of the next.
@@ -1059,7 +1095,7 @@ document.querySelector('.tabs[role=tablist]').addEventListener('click', e => {
 $('#shows').addEventListener('click', async e => {
   const b = e.target.closest('.show'); if (!b || (b.dataset.play || b.dataset.id) === state?.show) return;
   const s = await api('/api/show', {show: b.dataset.id});
-  if (s) toast(`Playing ${b.querySelector('.name').textContent}`);
+  if (s) { toast(`Playing ${b.querySelector('.name').textContent}`); askFollow(b.dataset.id); }
 });
 // Schedule: on at a time / around sunset / around sunrise; off at a time / after a while / around sunrise or sunset.
 const SUN_OFFSETS = [-120, -90, -60, -45, -30, -20, -15, -10, -5, 0, 5, 10, 15, 20, 30, 45, 60, 90, 120];

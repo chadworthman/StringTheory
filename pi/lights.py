@@ -492,12 +492,21 @@ def sunrise(step=0.5, ramp=44.0, hold=8.0, night=3.0, lead=0.7):
     show.period = period; show.step = step
     return show
 
-def goal_flash(pat, flash=0.4):
-    """A goal celebration: the whole string flashes each team colour in turn, with dark blinks between."""
+def goal_flash(pat, flash=0.4, sweep=4.0):
+    """A goal celebration: first the goal light, a bright red beam sweeping back and forth over dim red
+    like the rotating light behind the net, then the whole string flashing each team colour in turn."""
     cols = list(dict.fromkeys(c for c in pat if c != (0, 0, 0)))
-    seq = [f for c in cols for f in ([c] * TOTAL, [(0, 0, 0)] * TOTAL)]
-    def show(t): return seq[int(t / flash + 1e-6) % len(seq)]
-    show.period = flash * len(seq); show.step = flash
+    flashes = [f for c in cols for f in ([c] * TOTAL, [(0, 0, 0)] * TOTAL)]
+    width, speed = max(4, TOTAL // 5), max(4, TOTAL // 6)          # beam size, and bulbs it moves per step
+    span = TOTAL - width
+    def show(t):
+        k = int(t / flash + 1e-6)
+        if t < sweep:
+            pos = (k * speed) % (2 * span) if span else 0
+            pos = pos if pos <= span else 2 * span - pos             # bounce off each end
+            return [(255, 0, 0) if pos <= x < pos + width else (60, 0, 0) for x in range(TOTAL)]
+        return flashes[(k - round(sweep / flash)) % len(flashes)]
+    show.period = sweep + flash * len(flashes); show.step = flash
     return show
 
 def chase_flash(pat, step=0.6, flash=0.4, chase_secs=8.0, rounds=2):
@@ -877,7 +886,7 @@ def parse_rule(on, off):
 # state.json holds  zones: [{id, name, strings: [device names], show, speeds, brightness, override, on_at, off_at,
 # on_offset, off_offset, off_after}] plus customs, effect_names and location shared by every zone. Older single-zone state is read as one zone.
 ZONE_KEYS = ('show', 'speeds', 'brightness', 'override', 'on_at', 'off_at', 'on_offset', 'off_offset', 'off_after',
-             'track', 'goal_delay', 'celebrate')
+             'follow', 'game_power', 'goal_delay', 'celebrate', 'skip_game')
 def zones_of(st):
     if st.get('zones'): return st['zones']
     z = {k: st[k] for k in ZONE_KEYS if k in st}
@@ -945,6 +954,7 @@ class Shared:
     def __init__(self):
         self.show = SHOWS[DEFAULT_SHOW]; self.t0 = time.time(); self.speed = 1.0; self.bright = 1.0; self.power = None; self.epoch = 0
         self.party = None; self.party_t0 = 0      # a goal celebration playing over the show, and when it started
+        self.game = None; self.game_show = None; self.game_t0 = 0   # game mode: the team's theme during its games
     def t(self, now): return (now - self.t0) * self.speed   # how far into the show we are, in show time
 
 class String(threading.Thread):
@@ -1004,7 +1014,7 @@ class String(threading.Thread):
                 if self.busy_since is not None and now - self.busy_since < 3:
                     continue                 # receive() above already waited ~10 ms
                 party = sh.party
-                builtin = None if party else getattr(sh.show, 'builtin', None)
+                builtin = None if party or sh.game_show else getattr(sh.show, 'builtin', None)
                 if sh.power and builtin is not None:
                     # Built-in effect: the controller animates by itself. Send it once (both strings get
                     # it in the same moment, so they start together); resend only if it wasn't acked.
@@ -1015,7 +1025,7 @@ class String(threading.Thread):
                         if self.shown is None or self.shown == 'off': self.send(DP_SWITCH, True, now)
                         self.send(DP_EFFECT, base64.b64encode(dim_effect(builtin, sh.bright)).decode(), now); self.shown = builtin
                 elif sh.power:
-                    cur = party(now - sh.party_t0) if party else sh.show(sh.t(now))
+                    cur = party(now - sh.party_t0) if party else sh.game_show(now - sh.game_t0) if sh.game_show else sh.show(sh.t(now))
                     part = dim(cur[self.offset:self.offset + self.size], sh.bright)
                     # resend unchanged frames every 30 s so a string that missed one recovers
                     if part != self.shown or now - self.last_send > 30:
@@ -1031,11 +1041,12 @@ def frame(bulbs):
     return base64.b64encode(bytes([0, 0, 0, 1, 1]) + b''.join(bytes(c) + b'\0\0' for c in bulbs)).decode()
 
 # ---- hockey: follow a team's games and celebrate its goals -------------------------------------------
-# A zone playing a hockey theme can set track = that theme's key (e.g. 'leafs'). Only then does String Theory
-# go online: the NHL's public (unofficial) API at api-web.nhle.com, which has no key. It reads the team's
-# schedule a few times a day, checks the game every 30 s from 15 min before puck drop, and every 5 s while it's
-# live. A goal by the team plays goal_flash() over the show for GOAL_SECS, after the zone's goal_delay
-# (to line up with a TV that runs behind live).
+# A zone can follow a team: follow = that team's theme key (e.g. 'leafs'). Only then does String Theory go
+# online: the NHL's public (unofficial) API at api-web.nhle.com, which has no key. It reads the team's schedule
+# every 3 hours, checks the game every 30 s from 15 min before puck drop, and every 5 s while it's live.
+# During a game the zone plays the team's moving theme (game mode; with game_power it also turns the lights
+# on), then goes back to its own show. A goal plays goal_flash() over it for GOAL_SECS, after the zone's
+# goal_delay (to line up with a TV that runs behind live). Picking a show mid-game sets skip_game.
 HOCKEY_JSON = DATA / 'hockey.json'   # what the watcher knows, for the web page
 NHL_API = 'https://api-web.nhle.com/v1'
 GOAL_SECS = 10
@@ -1054,7 +1065,7 @@ class HockeyWatcher(threading.Thread):
             except Exception as e: log('hockey:', e)
             time.sleep(1)
     def step(self, now):
-        wanted = {NHL_TEAM[sh.track] for sh in list(self.zones.values()) if getattr(sh, 'track', None)}
+        wanted = {NHL_TEAM[sh.follow] for sh in list(self.zones.values()) if getattr(sh, 'follow', None)}
         for team in list(self.teams):
             if team not in wanted: del self.teams[team]
         changed = False
@@ -1093,15 +1104,19 @@ class HockeyWatcher(threading.Thread):
                 except Exception as e:
                     log(f'hockey: {team} game not available ({e})'); st['poll_at'] = now + 30
                 changed = True
+            # game mode: from 15 min before puck drop until the game is final
+            st['active'] = game['id'] if game and (game['state'] in ('PRE', 'LIVE', 'CRIT') or now >= game['start'] - 900) \
+                and game['state'] not in ('FINAL', 'OFF') else None
             nxt = next((g for g in sorted(st['games'], key=lambda g: g['start']) if g['state'] not in ('FINAL', 'OFF')), None)
-            st['public'] = {'team': team, 'game': game and {**{k: game[k] for k in ('start', 'opp', 'home')}, **st['status']},
+            st['public'] = {'team': team, 'active': st['active'],
+                            'game': game and {**{k: game[k] for k in ('id', 'start', 'opp', 'home')}, **st['status']},
                             'next': nxt and {k: nxt[k] for k in ('start', 'opp', 'home')}}
         if changed:
             tmp = HOCKEY_JSON.with_suffix('.tmp'); tmp.write_text(json.dumps({t: v.get('public') for t, v in self.teams.items()}))
             tmp.replace(HOCKEY_JSON)
 
 def celebrate(sh, now, why):
-    zm = sh.zm; key = sh.track or sh.view.get('show', '').removesuffix('move')
+    zm = sh.zm; key = sh.follow or sh.view.get('show', '').removesuffix('move')
     if key not in zm.HOCKEY: return
     sh.party = goal_flash(zm.HOCKEY[key]); sh.party_t0 = now; sh.party_end = now + GOAL_SECS; sh.epoch += 1
     log(f'{sh.name}: celebrating ({why})')
@@ -1122,8 +1137,13 @@ def run():
     watcher = HockeyWatcher(zones); watcher.start()
     next_stats = time.time() + 60; next_health = 0
     state = load_state()
+    def save_engine():                                   # where each zone's show clock is, for the page to mirror
+        tmp = ENGINE.with_suffix('.tmp')
+        tmp.write_text(json.dumps({'zones': {zid: {'t0': sh.t0, 'speed': sh.speed, 'show': sh.cur[0],
+                                                   'game': sh.game, 'game_t0': sh.game_t0} for zid, sh in zones.items()}}))
+        tmp.replace(ENGINE)
     while True:
-        now = time.time()
+        now = time.time(); write_engine = False
         try:                                             # pick up changes from the page or the CLI
             m = STATE.stat().st_mtime
             if m != state_mtime:
@@ -1136,8 +1156,9 @@ def run():
                     sh = zones.get(z['id'])
                     if sh is None: sh = zones[z['id']] = Shared(); sh.cur = None
                     sh.view, sh.name, sh.zm = view, z.get('name', z['id']), zm
-                    tr = view.get('track')                # follow games only while that team's theme plays
-                    sh.track = tr if tr in NHL_TEAM and view.get('show') in (tr, tr + 'move') else None
+                    fo = view.get('follow')                # the team this zone follows, if any
+                    sh.follow = fo if fo in NHL_TEAM else None
+                    sh.game_power = view.get('game_power', True); sh.skip_game = view.get('skip_game')
                     sh.delay = max(0, min(120, int(view.get('goal_delay') or 0)))
                     req = view.get('celebrate')           # "Test celebration" from the page
                     if req and req != getattr(sh, 'celebrated', None):
@@ -1166,26 +1187,32 @@ def run():
                     names = [n for n, _ in zone_strings(z)]
                     s.offset = sum(b for n, b in zone_strings(z)[:names.index(s.name)])
                     s.shared = zones[z['id']]
-                tmp = ENGINE.with_suffix('.tmp')
-                tmp.write_text(json.dumps({'zones': {zid: {'t0': sh.t0, 'speed': sh.speed, 'show': sh.cur[0]}
-                                                     for zid, sh in zones.items()}}))
-                tmp.replace(ENGINE)
+                write_engine = True
         except FileNotFoundError:
             pass
         while watcher.goals:                             # goals spotted: queue them for each zone following that team
             at, team = watcher.goals.popleft()
             for sh in zones.values():
-                if getattr(sh, 'track', None) and NHL_TEAM[sh.track] == team:
+                if getattr(sh, 'follow', None) and NHL_TEAM[sh.follow] == team:
                     sh.pending = getattr(sh, 'pending', []) + [at + sh.delay]
         for zid, sh in zones.items():
+            fo = getattr(sh, 'follow', None)             # game mode: the team's moving theme while its game is on
+            gid = fo and watcher.teams.get(NHL_TEAM[fo], {}).get('active')
+            game = fo + 'move' if gid and gid != sh.skip_game else None
+            if game != sh.game:
+                sh.game = game; sh.game_show = sh.zm.SHOWS[game] if game else None; sh.game_t0 = now; sh.epoch += 1
+                log(f'{sh.name}: game on, playing {game}' if game else f'{sh.name}: game over, back to {sh.cur[0] if sh.cur else "its show"}')
+                write_engine = True
             if getattr(sh, 'pending', None) and now >= sh.pending[0]:
                 sh.pending.pop(0); celebrate(sh, now, 'goal')
             if sh.party and now >= sh.party_end:
                 sh.party = None; sh.epoch += 1
             ov = override(sh.view)
             want_on = is_on_hours(sh.view) if ov is None else ov
+            if sh.game and sh.game_power and ov is not False: want_on = True     # lights on for the game
             if want_on != sh.power:
                 log(f'{sh.name}: power', 'ON' if want_on else 'OFF'); sh.power = want_on; sh.epoch += 1
+        if write_engine: save_engine()
         if now >= next_health:
             next_health = now + 5
             h = {'at': now, 'strings': [{**s.health(now), 'want_on': bool(s.shared.power)} for s in strings]}
