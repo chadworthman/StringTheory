@@ -188,7 +188,7 @@ The page has no login. Keep it on your home network: if your firewall is on, all
 
 ## Using it
 
-**Shows** has filter chips for **Themes**, **Hockey**, **Playlists** and **Yours** (patterns you've saved). Themes are grouped by occasion (Christmas, Winter, Holidays in calendar order, Colour, and so on). Every still theme has an **Animate** switch on its card. Turning it on plays that theme animated, and picking another card turns it off again. Most themes chase their stripes; a few have their own animation (Christmas tree's ornaments twinkle, Sunset flows out from the centre, Aurora colours breathe, Confetti jostles). Shows that are an animation of their own sit among the themes without a switch. On a zone of just a few lights, such as a pair of flood lights, still themes step through all their colours (two bulbs can't show a pattern), and each card has a bar of the show's colours. The test patterns are under **Bulbs** on Setup. The app remembers the screen and chip you last used. **Help** (`/help`, on Setup) explains the app and lists every show A to Z, with a Play button for each. You can also control everything from a shell on the Pi:
+**Shows** has filter chips for **Favourites**, **Themes**, **Hockey**, **Playlists** and **Yours** (patterns you've saved). Tap the ☆ on any card to add it to Favourites, and drag the ⠿ handle on the Favourites tab to put them in your own order (the playlist builder lists them first, in that order); favourites are kept on your String Theory, so every phone sees the same ones. Themes are grouped by occasion (Christmas, Winter, Holidays in calendar order, Colour, and so on). Every still theme has an **Animate** switch on its card. Turning it on plays that theme animated, and picking another card turns it off again. Most themes chase their stripes; a few have their own animation (Christmas tree's ornaments twinkle, Sunset flows out from the centre, Aurora colours breathe, Confetti jostles). Shows that are an animation of their own sit among the themes without a switch. On a zone of just a few lights, such as a pair of flood lights, still themes step through all their colours (two bulbs can't show a pattern), and each card has a bar of the show's colours. The test patterns are under **Bulbs** on Setup. The app remembers the screen and chip you last used. **Help** (`/help`, on Setup) explains the app and lists every show A to Z, with a Play button for each. You can also control everything from a shell on the Pi:
 
 ```sh
 lights status                  # current show, power and schedule
@@ -301,7 +301,7 @@ The installer sets it up as the `string-theory-homekit` service (it needs `pip i
 
 ### Playlists
 
-**Playlists** on the Shows screen has these built-in playlists, plus any you save:
+**Playlists** on the Shows screen has any playlists you save, listed first, then these built-in ones:
 
 | Playlist | Steps |
 |---|---|
@@ -317,8 +317,8 @@ Names follow one rule: when a theme comes both still and moving, the still one h
 
 **Edit a copy** under any of these opens it in the playlist builder, so you can make your own version.
 
-**New playlist** on Create (or **Build your own playlist** under Playlists) makes a show that switches between themes:
-1. Pick a theme and how long it shows, from 15 seconds to 30 minutes.
+**New playlist** on Create (or **Build your own playlist** under Playlists) lists your saved playlists first, each with **Edit** and **Delete**, and below them builds a new one, a show that switches between themes:
+1. Pick a theme (your favourites are listed first) and how long it shows, from 15 seconds to 30 minutes. Turn on **Animate** to use the theme's moving version.
 2. Pick how it changes to the next theme:
    - **Chase in:** the next theme pushes in from the first bulb, one bulb at a time.
    - **Fade:** a 4-second crossfade.

@@ -111,6 +111,9 @@
   .hang .tabs { margin: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hang .tabs button { font-size: 14px; padding: 0 10px; min-height: 40px; }
   .hang .spot { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; align-items: center; color: var(--muted); font-size: 14px; }
+  .pl-mine { margin: 0 0 18px; }
+  .pl-mine .sub { margin-top: 4px; }
+  #pl-mine-list li[aria-current="true"] { border-color: var(--amber); }
   .zone-row { display: flex; align-items: center; gap: 8px; margin: -4px 0 16px; }
   .zone-switch { display: flex; gap: 6px; overflow-x: auto; flex: 1; min-width: 0; padding-bottom: 2px; scrollbar-width: none; }
   .zone-row .switch { flex: none; margin-left: auto; padding: 0 0 2px 4px; }   /* the shown zone's lights, on every screen */
@@ -311,6 +314,18 @@
   a.more { display: inline-block; margin: 2px 16px 10px; color: var(--amber); font-size: 15px; }
   .now-card a.more { margin: 6px 0 0; }
   .show[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset, 0 0 22px -8px var(--amber); }
+  #shows li[data-id] { position: relative; }
+  #shows .show .name { padding-right: 36px; }
+  .fav { position: absolute; top: 6px; right: 6px; z-index: 3; width: 44px; height: 44px; border: 0; background: none;
+         color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; border-radius: 10px; }
+  .fav[aria-pressed="true"] { color: var(--amber); }
+  /* Favourites tab: a handle to drag cards into your own order (or arrow keys on it) */
+  .grip { display: none; position: absolute; top: 6px; right: 48px; z-index: 3; width: 40px; height: 44px; border: 0;
+          background: none; color: var(--muted); font-size: 20px; cursor: grab; touch-action: none; border-radius: 10px; }
+  #shows.fav-tab .grip { display: block; }
+  #shows.fav-tab .show .name { padding-right: 84px; }
+  #shows li.dragging { opacity: 0.75; transform: scale(1.02); z-index: 5; }
+  #shows li.dragging .grip { cursor: grabbing; color: var(--amber); }
   .show[aria-pressed="true"] .name::after { content: "Playing"; color: var(--amber); font-size: 14px; font-weight: 650; }
   .show[data-after] .name::after { content: "After the game"; color: var(--muted); font-size: 14px; font-weight: 650; }
   /* the team you follow: a solid amber badge and a warm tint, so it stands out among 32 cards */
@@ -442,6 +457,7 @@
   <section class="view" data-view="shows" aria-labelledby="shows-h" hidden>
     <h1 class="view-title" id="shows-h">Shows</h1>
     <div class="tabs" role="tablist" aria-labelledby="shows-h">
+      <button role="tab" data-kind="fav" aria-selected="false" aria-controls="shows">Favourites</button>
       <button role="tab" data-kind="themes" aria-selected="false" aria-controls="shows">Themes</button>
       <button role="tab" data-kind="hockey" aria-selected="false" aria-controls="shows">Hockey</button>
       <button role="tab" data-kind="playlist" aria-selected="false" aria-controls="shows">Playlists</button>
@@ -467,6 +483,7 @@
     <ul class="shows" id="shows" role="tabpanel"></ul>
     <button type="button" class="btn2 wide" id="pl-new" hidden>Build your own playlist</button>
     <p class="empty" id="custom-empty" hidden>Patterns you make on Create appear here.</p>
+    <p class="empty" id="fav-empty" hidden>Tap the ☆ on any show to keep it here.</p>
   </section>
 
   <!-- CREATE: make patterns and playlists -->
@@ -476,8 +493,12 @@
       <button type="button" data-ed="pattern" aria-pressed="true">New pattern</button>
       <button type="button" data-ed="playlist" aria-pressed="false">New playlist</button>
     </div>
+    <div class="pl-mine" id="pl-mine" hidden>
+      <h3 class="sub">Your playlists</h3>
+      <ul class="zone-list" id="pl-mine-list"></ul>
+    </div>
     <form class="editor" id="pl-editor" hidden>
-      <h3 id="pl-title">Build a playlist</h3>
+      <h3 id="pl-title">New playlist</h3>
       <p class="note">Each theme shows for its time, then moves to the next with its transition. After the last one it goes back to the first.</p>
       <ol class="steps" id="pl-steps"></ol>
       <button type="button" class="btn2" id="pl-add">Add a theme</button>
@@ -660,9 +681,16 @@ const tabOf = k => k === 'still' || k === 'moving' ? 'themes' : k;
 function showTab() {
   localStorage.setItem('tab', tab);              // come back to this tab next time
   document.querySelectorAll('.tabs button[data-kind]').forEach(b => b.setAttribute('aria-selected', b.dataset.kind === tab));
-  document.querySelectorAll('#shows li').forEach(li => li.hidden = tabOf(li.dataset.kind) !== tab);
+  const favs = new Set(state?.favourites || []);      // Favourites: the starred cards from every tab, no headings
+  document.querySelectorAll('#shows li').forEach(li => li.hidden = tab === 'fav'
+    ? li.classList.contains('group') || !favs.has(li.dataset.id) || ['variant', 'draft'].includes(li.dataset.kind)
+    : tabOf(li.dataset.kind) !== tab);
+  $('#fav-empty').hidden = tab !== 'fav' || favs.size > 0;
+  $('#shows').classList.toggle('fav-tab', tab === 'fav');
+  orderFavs(drag ? drag.order : state?.favourites || []);   // a refresh mid-drag keeps the drag's order
   $('#hockey-panel').hidden = tab !== 'hockey';
   $('#editor').hidden = edMode !== 'pattern';
+  if (state) renderMyPlaylists();
   $('#pl-editor').hidden = edMode !== 'playlist';
   document.querySelectorAll('#ed-switch button').forEach(b => b.setAttribute('aria-pressed', b.dataset.ed === edMode));
   $('#custom-empty').hidden = tab !== 'custom' || !!state?.shows.some(x => x.kind === 'custom');
@@ -770,6 +798,10 @@ function render(s) {
   const zoneChanged = s.zone !== zone || (state && state.zone !== s.zone);
   zone = s.zone; localStorage.setItem('zone', zone);
   if (zoneChanged && state) { tab = null; previews = null; loadPreviews(); }
+  // A show added or changed since the previews loaded (shows reload on the Pi without a restart): fetch them again.
+  const showSig = s.shows.map(x => x.id).join('|');
+  if (state && !zoneChanged && state._showSig && state._showSig !== showSig) loadPreviews();
+  s._showSig = showSig;
   state = s; clockOffset = s.now - Date.now() / 1000;
   renderZones(s); renderBulbs(s); renderScan(s); renderHome(s);
   $('#lights-name').textContent = allZones ? 'All zones' : s.lights_name;
@@ -807,7 +839,7 @@ function render(s) {
         ? `<li class="group" data-kind="${x.kind}"><h3>${esc(x.group)}</h3></li>` : '';
       seen[tabOf(x.kind)] = x.group;
       return head + `
-      <li data-kind="${x.kind}">${x.moving_id || x.kind === 'hockey' ? '<div class="card">' : ''}<button class="show" data-id="${x.id}"${x.moving_id ? ` data-moving="${x.moving_id}"` : ''}${x.kind === 'hockey' ? ' data-team' : ''} aria-pressed="false">
+      <li data-kind="${x.kind}" data-id="${esc(x.id)}"${x.spec ? ' data-user' : ''}>${x.kind === 'test' || x.kind === 'variant' ? '' : `<button type="button" class="fav" data-fav="${esc(x.id)}" aria-pressed="false" aria-label="Favourite: ${esc(x.name)}">☆</button><button type="button" class="grip" aria-label="Move ${esc(x.name)}: drag, or use the arrow keys">⠿</button>`}${x.moving_id || x.kind === 'hockey' ? '<div class="card">' : ''}<button class="show" data-id="${x.id}"${x.moving_id ? ` data-moving="${x.moving_id}"` : ''}${x.kind === 'hockey' ? ' data-team' : ''} aria-pressed="false">
         <span class="name">${esc(x.name)}</span>
         <span class="wire" aria-hidden="true"></span>${x.colours?.length ? `
         <span class="colours" aria-hidden="true">${x.colours.map(c => `<i style="background:${c}"></i>`).join('')}</span>` : ''}
@@ -821,6 +853,10 @@ function render(s) {
     ul.querySelectorAll('.show').forEach((b, i) => wire(b.querySelector('.wire'), s.shows[i].preview));
     $('#test-shows').replaceChildren(...ul.querySelectorAll('li[data-kind="test"]'));   // tests live in Setup > Bulbs
   }
+  const favSet = new Set(s.favourites || []);
+  document.querySelectorAll('#shows .fav').forEach(f => {
+    const on = favSet.has(f.dataset.fav); f.setAttribute('aria-pressed', on); f.textContent = on ? '★' : '☆';
+  });
   document.querySelectorAll('#shows .show, #test-shows .show').forEach(b => {
     const m = b.dataset.moving;
     if (m) {                                    // Animate switch: on only while this card plays its animated version
@@ -840,8 +876,8 @@ function render(s) {
   if (!tab && location.hash === '#newplaylist') { tab = 'custom'; edMode = 'playlist'; showView('create'); }
   // Start on the tab named in the link (#themes etc.; old #still and #moving links open Themes), else the last
   // tab chosen on this phone, else Themes.
-  const TABS = ['themes', 'hockey', 'playlist', 'custom'];
-  const linked = {still: 'themes', moving: 'themes'}[location.hash.slice(1)] || location.hash.slice(1);
+  const TABS = ['fav', 'themes', 'hockey', 'playlist', 'custom'];
+  const linked = {still: 'themes', moving: 'themes', favourites: 'fav'}[location.hash.slice(1)] || location.hash.slice(1);
   if (!tab && TABS.includes(linked)) showView('shows');
   if (!tab && VIEWS.includes(location.hash.slice(1))) showView(location.hash.slice(1));
   if (!tab) tab = TABS.find(k => k === linked)
@@ -955,26 +991,50 @@ const HOLDS = [[15, '15 sec'], [30, '30 sec'], [60, '1 min'], [120, '2 min'], [3
                [600, '10 min'], [900, '15 min'], [1800, '30 min']];
 const TRANS = [['chase', 'Chase in'], ['fade', 'Fade'], ['cut', 'Quick change']];
 function themeOptions(sel) {
+  // Favourites first, in your order (the ones a playlist can use), then everything by kind. A favourite also
+  // appears in its own group below; only its first appearance is marked selected.
   const kinds = {still: 'Still', moving: 'Moving', custom: 'Your shows'}, groups = {};
+  const playable = new Map(state.playable.map(p => [p.id, p])), favs = (state.favourites || []).filter(id => playable.has(id));
+  let picked = false;
+  const opt = p => { const on = p.id === sel && !picked; if (on) picked = true;
+                     return `<option value="${p.id}"${on ? ' selected' : ''}>${esc(p.name)}</option>`; };
+  const fav = favs.map(id => opt(playable.get(id))).join('');
   state.playable.forEach(p => {
     const k = state.shows.find(x => x.id === p.id)?.kind || 'still';
-    (groups[k] ??= []).push(`<option value="${p.id}"${p.id === sel ? ' selected' : ''}>${esc(p.name)}</option>`);
+    (groups[k] ??= []).push(opt(p));
   });
-  return Object.entries(kinds).filter(([k]) => groups[k]).map(([k, label]) => `<optgroup label="${label}">${groups[k].join('')}</optgroup>`).join('');
+  return (fav ? `<optgroup label="Favourites">${fav}</optgroup>` : '')
+    + Object.entries(kinds).filter(([k]) => groups[k]).map(([k, label]) => `<optgroup label="${label}">${groups[k].join('')}</optgroup>`).join('');
 }
+// New playlist on Create: your saved playlists first, each with Edit and Delete, then the builder for a new one.
+function renderMyPlaylists() {
+  const mine = (state?.shows || []).filter(x => x.kind === 'playlist' && x.spec);
+  $('#pl-mine').hidden = edMode !== 'playlist' || !mine.length;
+  $('#pl-mine-list').innerHTML = mine.map(x => `<li${pl.id === x.id ? ' aria-current="true"' : ''}>
+    <span class="who">${esc(x.name)}<small>${esc(x.desc)}</small></span>
+    <button type="button" class="btn2" data-edit="${esc(x.id)}">Edit</button>
+    <button type="button" class="btn2" data-del="${esc(x.id)}">Delete</button></li>`).join('');
+}
+// A theme's animated version (Grinch (moving)) is picked with the row's Animate switch, as on the show cards.
+const stillOf = id => state.shows.find(x => x.moving_id === id)?.id || id;
 function renderPlaylist() {
   if (!state) return;
   const last = pl.items.length - 1;
-  $('#pl-steps').innerHTML = pl.items.map((it, i) => `<li data-i="${i}">
-      <div class="top"><select class="pl-show" aria-label="Theme ${i + 1}">${themeOptions(it.show)}</select>
+  $('#pl-steps').innerHTML = pl.items.map((it, i) => {
+    const still = stillOf(it.show), mv = state.shows.find(x => x.id === still)?.moving_id;
+    return `<li data-i="${i}">
+      <div class="top"><select class="pl-show" aria-label="Theme ${i + 1}">${themeOptions(still)}</select>
         ${pl.items.length > 1 ? `<button type="button" class="rm" data-rm="${i}" aria-label="Remove theme ${i + 1}">×</button>` : ''}</div>
+      ${mv ? `<label class="switch"><input type="checkbox" role="switch" class="pl-anim"${it.show === mv ? ' checked' : ''}><span>Animate</span></label>` : ''}
       <div class="row2">
         <label>Show for <select class="pl-hold">${HOLDS.map(([v, l]) => `<option value="${v}"${v === it.hold ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
         <label>${i === last ? 'Then, back to the first' : 'Then'} <select class="pl-trans">${TRANS.map(([v, l]) => `<option value="${v}"${v === it.transition ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
-      </div></li>`).join('');
+      </div></li>`;
+  }).join('');
   $('#pl-add').hidden = pl.items.length >= 20;
   $('#pl-name').value = pl.name;
-  $('#pl-title').textContent = pl.id ? `Editing ${pl.name}` : 'Build a playlist';
+  $('#pl-title').textContent = pl.id ? `Editing ${pl.name}` : 'New playlist';
+  renderMyPlaylists();
   $('#pl-save').textContent = pl.id ? 'Save changes' : 'Save playlist';
   $('#pl-cancel').hidden = !pl.id;
 }
@@ -987,7 +1047,13 @@ $('#ed-switch').addEventListener('click', e => {
 });
 $('#pl-steps').addEventListener('change', e => {
   const li = e.target.closest('li'), it = pl.items[+li.dataset.i];
-  if (e.target.matches('.pl-show')) it.show = e.target.value;
+  if (e.target.matches('.pl-show')) {             // a new theme keeps the row's Animate setting where it can
+    const anim = it.show !== stillOf(it.show), mv = state.shows.find(x => x.id === e.target.value)?.moving_id;
+    it.show = anim && mv ? mv : e.target.value; renderPlaylist();
+  }
+  if (e.target.matches('.pl-anim')) {
+    const still = stillOf(it.show); it.show = e.target.checked ? state.shows.find(x => x.id === still).moving_id : still;
+  }
   if (e.target.matches('.pl-hold')) it.hold = +e.target.value;
   if (e.target.matches('.pl-trans')) it.transition = e.target.value;
 });
@@ -1090,7 +1156,8 @@ $('#editor').addEventListener('submit', async e => {
   const s = await api('/api/custom', edBody({id: editing ? editing.slice(7) : null, name: ed.name, play: true}));
   if (s) { toast(editing ? `Saved ${ed.name}` : `Saved and playing ${ed.name}`); ed = {...ed, id: null, name: ''}; syncEditor(); loadPreviews(); tab = 'custom'; showTab(); showView('shows'); }
 });
-$('#shows').addEventListener('click', async e => {
+// Edit, Delete and Edit a copy: on the show cards, and on the Create screen's list of your playlists.
+async function customAction(e) {
   const edit = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]'), copy = e.target.closest('[data-copy]');
   if (copy) {                                   // start a new playlist from a built-in one
     const x = state.shows.find(v => v.id === copy.dataset.copy);
@@ -1108,9 +1175,15 @@ $('#shows').addEventListener('click', async e => {
   }
   if (del) {
     const x = state.shows.find(v => v.id === del.dataset.del);
-    if (confirm(`Delete ${x.name}?`) && await api('/api/custom/delete', {id: x.id.slice(7)})) { toast(`Deleted ${x.name}`); loadPreviews(); }
+    if (confirm(`Delete ${x.name}?`) && await api('/api/custom/delete', {id: x.id.slice(7)})) {
+      toast(`Deleted ${x.name}`); loadPreviews();
+      if (pl.id === x.id) { pl = {...pl, id: null, name: ''}; renderPlaylist(); }
+    }
   }
-});
+  if (edit && e.currentTarget.id === 'pl-mine-list') $('#pl-editor').scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+$('#shows').addEventListener('click', customAction);
+$('#pl-mine-list').addEventListener('click', customAction);
 renderSwatches();
 
 // ---- Renaming the lights ----
@@ -1514,6 +1587,11 @@ function paintHouse() {
       return;
     }
     const pv = z.id === state.zone ? previews : zonePv[z.id]?.data;
+    if (z.id === state.zone && previews && !previews[z.show] && !paintHouse.asked?.[z.show]) {   // a show the page hasn't got yet
+      (paintHouse.asked ??= {})[z.show] = true;
+      fetch(`/api/previews?zone=${encodeURIComponent(z.id)}&show=${encodeURIComponent(z.show)}`).then(r => r.json())
+        .then(d => { Object.assign(previews, d); hz.f = ''; tick(); }).catch(() => {});
+    }
     const fr = frameAt(z.show, (now - (z.started ?? now)) * (z.speed || 1), false, pv); if (!fr) return;
     const flip = (z.direction === 'right') !== !!z.reversed, key = `${z.show}:${fr[0]}:${flip}`;
     if (hz.f === key) return; hz.f = key;
@@ -1567,6 +1645,60 @@ document.querySelector('.tabs[role=tablist]').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   tab = b.dataset.kind; showTab(); tick();
 });
+// Favourites in your order: the list is a grid, so each card's CSS order places it without moving the DOM.
+// On Playlists, your own playlists come first, then the built-in ones (with their headings).
+function orderFavs(order) {
+  document.querySelectorAll('#shows li').forEach(li => {
+    const i = order.indexOf(li.dataset.id);
+    li.style.order = tab === 'fav' && i >= 0 ? i : tab === 'playlist' && !('user' in li.dataset) ? 1 : '';
+  });
+}
+let drag = null;
+$('#shows').addEventListener('pointerdown', e => {
+  const g = e.target.closest('.grip'); if (!g || tab !== 'fav') return;
+  e.preventDefault();
+  const li = g.closest('li');
+  drag = {li, id: li.dataset.id, order: [...state.favourites], start: state.favourites.join('|')};
+  li.classList.add('dragging'); g.setPointerCapture(e.pointerId);
+});
+$('#shows').addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (e.clientY < 90) scrollBy(0, -14); else if (e.clientY > innerHeight - 110) scrollBy(0, 14);   // scroll near the edges
+  const over = [...document.querySelectorAll('#shows li[data-id]:not([hidden])')].find(li => {
+    if (li === drag.li) return false;
+    const r = li.getBoundingClientRect();
+    return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  });
+  if (!over) return;
+  const to = drag.order.indexOf(over.dataset.id); if (to < 0) return;
+  drag.order.splice(drag.order.indexOf(drag.id), 1); drag.order.splice(to, 0, drag.id);
+  orderFavs(drag.order);
+});
+async function saveFavOrder(order) {
+  if (await api('/api/favourites/order', {order})) toast('Favourites rearranged'); else orderFavs(state.favourites);
+}
+function endDrag() {
+  if (!drag) return;
+  const d = drag; drag = null; d.li.classList.remove('dragging');
+  if (d.order.join('|') !== d.start) saveFavOrder(d.order);
+}
+$('#shows').addEventListener('pointerup', endDrag);
+$('#shows').addEventListener('pointercancel', endDrag);
+$('#shows').addEventListener('keydown', e => {          // keyboard: arrow keys on the handle move the card
+  const g = e.target.closest('.grip'); if (!g || !['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+  e.preventDefault();
+  const id = g.closest('li').dataset.id, order = [...state.favourites], i = order.indexOf(id);
+  const j = i + (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1);
+  if (j < 0 || j >= order.length) return;
+  order.splice(i, 1); order.splice(j, 0, id); orderFavs(order); saveFavOrder(order).then(() => g.focus());
+});
+$('#shows').addEventListener('click', async e => {      // the star: add to or take off Favourites
+  if (e.target.closest('.grip')) { e.stopPropagation(); return; }   // the handle never plays the card
+  const f = e.target.closest('[data-fav]'); if (!f) return;
+  e.stopPropagation();
+  const on = f.getAttribute('aria-pressed') !== 'true', name = state.shows.find(x => x.id === f.dataset.fav)?.name;
+  if (await api('/api/favourite', {show: f.dataset.fav, on})) { toast(on ? `${name} added to Favourites` : `${name} taken off Favourites`); showTab(); }
+}, true);
 $('#test-shows').addEventListener('click', async e => {
   const b = e.target.closest('.show'); if (!b || b.dataset.id === state?.show) return;
   if (await api('/api/show', {show: b.dataset.id})) toast(`Playing ${b.querySelector('.name').textContent}`);

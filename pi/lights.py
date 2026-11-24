@@ -276,6 +276,32 @@ def embers(step=0.4, loop=150):
     show.period = loop * step; show.step = step
     return show
 
+def flames(step=0.4, loop=150):
+    """Open flames: tongues of fire spaced along the string, each a yellow core with orange around it and
+    red at its edges, over a low red bed. Every step each tongue flickers taller or shorter (now and then
+    flaring up), and the tongues wander slowly back and forth. Brighter and more yellow than Embers."""
+    heat = [(110, 5, 0), (255, 20, 0), (255, 70, 0), (255, 110, 0), (255, 150, 0), (255, 190, 30)]
+    n = max(1, round(TOTAL / 8))                                   # a tongue every 8 bulbs or so
+    def show(t):
+        k = int(t / step) % loop
+        out = []
+        tongues = []
+        for j in range(n):
+            base = (j + 0.5) * TOTAL / n
+            sway = 1.5 * math.sin(2 * math.pi * ((j % 3) + 1) * k / loop + j)   # whole cycles per loop
+            r = random.Random(j * 7349 + k * 2131).random()
+            size = 1.5 + 2.5 * r + (2 if r > 0.93 else 0)            # flicker, with the odd flare-up
+            tongues.append((base + sway, size))
+        for i in range(TOTAL):
+            h = max(size - abs(i - c) for c, size in tongues)          # how far inside the nearest tongue
+            bed = random.Random(i * 4271 + (k // 2) * 911).random()    # the coals between tongues
+            lvl = 0 if h <= 0 else min(len(heat) - 1, 1 + int(h * 1.3))
+            if lvl == 0 and bed > 0.7: lvl = 1
+            out.append(heat[lvl])
+        return out
+    show.period = loop * step; show.step = step
+    return show
+
 def snowfall(step=0.5):
     """Night-blue string with white flakes drifting toward the far end at different speeds, where
     snow slowly piles up and melts away again."""
@@ -792,6 +818,7 @@ SHOWS = {
     'confetti':  lambda t: CONFETTI,         # static: the 48 rainbow colours in random spots
     # moving themes
     'embers':    embers(),
+    'fire':      flames(),            # key 'fire': 'flames' is the Calgary Flames
     'snowfall':  snowfall(),
     'marquee':   chase([WHITE, OFF, OFF], 0.5),           # every third bulb lit, stepping like a theatre sign
     'newyear':   new_year(),

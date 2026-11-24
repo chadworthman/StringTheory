@@ -54,6 +54,7 @@ SHOW_INFO = [
     ('whitescan',    'White with chasers', 'Red and green chasers from opposite ends, crossing where the strings meet.'),
     ('icy',          'Icy',              'Bands of deep blue, ice blue and white drifting along.'),
     ('embers',       'Embers',           'Glowing coals in deep red and amber, flickering like a fire.'),
+    ('fire',         'Flames',           'Tongues of fire with yellow cores, orange around them and red at the edges, flickering and swaying.'),
     ('snowfall',     'Snowfall',         'White flakes drifting along a night-blue string, piling up at the end.'),
     ('marquee',      'Theatre marquee',  'Every third bulb lit, stepping along like an old cinema sign.'),
     ('newyear',      "New Year's Eve",   'Gold and white all evening, then a minute of flashes at midnight.'),
@@ -188,7 +189,7 @@ GROUPS = [
                   'fourth', 'fourthmove', 'halloweenstill', 'halloween', 'hanukkah']),
     ('Seasonal', ['winter', 'fireside', 'spooky']),
     ('Colour', ['rainbow', 'double', 'confetti', 'goldenangle', 'goldenanglemove', 'sunset', 'sunrise',
-                'rainbowmove', 'doublemove', 'jostle', 'sunsetmove', 'fibonacci', 'ukraine', 'embers', 'chaos']),
+                'rainbowmove', 'doublemove', 'jostle', 'sunsetmove', 'fibonacci', 'ukraine', 'embers', 'fire', 'chaos']),
     ('Just for fun', ['rainbows', 'party']),
     ('Solid colours', [k for k, _, _ in L.WASHES]),
     ('Hockey', ['ducks', 'ducksmove', 'bruins', 'bruinsmove', 'sabres', 'sabresmove', 'flames', 'flamesmove', 'hurricanes', 'hurricanesmove', 'blackhawks', 'blackhawksmove', 'avalanche', 'avalanchemove', 'bluejackets', 'bluejacketsmove', 'stars', 'starsmove', 'redwings', 'redwingsmove', 'oilers', 'oilersmove', 'panthers', 'panthersmove', 'kings', 'kingsmove', 'wild', 'wildmove', 'canadiens', 'canadiensmove', 'predators', 'predatorsmove', 'devils', 'devilsmove', 'islanders', 'islandersmove', 'rangers', 'rangersmove', 'senators', 'senatorsmove', 'flyers', 'flyersmove', 'penguins', 'penguinsmove', 'sharks', 'sharksmove', 'kraken', 'krakenmove', 'blues', 'bluesmove', 'lightning', 'lightningmove', 'leafs', 'leafsmove', 'mammoth', 'mammothmove', 'canucks', 'canucksmove', 'goldenknights', 'goldenknightsmove', 'capitals', 'capitalsmove', 'jets', 'jetsmove']),
@@ -508,6 +509,7 @@ def state_payload(zid=None):
         'teams': [{'id': k, 'name': n} for k, n, _ in SHOW_INFO if k in L.NHL_TEAM],
         'goal_delay': int(zone.get('goal_delay') or 0),
         'scan': scan_state(),
+        'favourites': [k for k in st.get('favourites', []) if any(x['id'] == k for x in shows)],
         'homekit': homekit_state(st),
         'hockey': hockey_status(zone.get('follow')),
         'brightnesses': list(L.BRIGHTNESS),
@@ -840,6 +842,16 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send(400, {'error': 'Pick another string for it to sit between.'})
             st.setdefault('house', {}).setdefault('strings', {})[name] = {k: p.get(k) for k in ('row', 'place', 'with', 'flip', 'spots')}
             st['house']['strings'][name] = house_of(st)[name]
+        elif path == '/api/favourite':                  # {show, on}: the stars on the show cards, shared by every zone
+            key = body.get('show')
+            if zm.show_fn(key, view) is None: return self.send(400, {'error': 'Unknown show.'})
+            favs = [k for k in st.get('favourites', []) if k != key]
+            st['favourites'] = favs + [key] if body.get('on') else favs
+        elif path == '/api/favourites/order':          # {order: [show ids]}: Favourites rearranged by dragging
+            order = body.get('order')
+            if not isinstance(order, list) or sorted(order) != sorted(st.get('favourites', [])):
+                return self.send(400, {'error': 'Send the same favourites, in the new order.'})
+            st['favourites'] = order
         elif path == '/api/scan':                       # "Find new lights": scan.py runs in the background
             sc = scan_state()
             if sc.get('running'): return self.send(400, {'error': 'Already looking.'})

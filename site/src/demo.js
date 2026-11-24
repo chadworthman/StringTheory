@@ -133,6 +133,7 @@
     p.lights_name = st.name;
     p.zones = [{...p.zones[0], name: st.name, direction: st.direction || 'left', show: p.show, started: st.started,
                 speed: speedOf(p.show), reversed: !!st.reversed?.[p.show], lit, held: st.mode !== 'auto'}];
+    p.favourites = st.favourites || [];
     p.house = Object.fromEntries(Object.entries(p.house).map(([n, h]) => [n, {...h, ...(st.house?.[n] || {})}]));
     p.schedule = {on: hm(win[0]), off: hm(win[1]), text: ruleText(), rule: {...st.rule}};
     p.location = st.location;
@@ -176,6 +177,14 @@
         const x = payload(D).shows.find(x => x.id === body.show);
         if (!x?.reversible) return no("That show doesn't move, so it has no direction.");
         st.reversed = {...st.reversed, [body.show]: !!body.reversed}; break;
+      }
+      case '/api/favourites/order':
+        if (!Array.isArray(body.order) || [...body.order].sort().join() !== [...(st.favourites || [])].sort().join()) return no('Send the same favourites, in the new order.');
+        st.favourites = body.order; break;
+      case '/api/favourite': {               // stars on the show cards, kept in this browser
+        if (!payload(D).shows.some(x => x.id === body.show)) return no('Unknown show.');
+        const f = (st.favourites || []).filter(k => k !== body.show);
+        st.favourites = body.on ? f.concat(body.show) : f; break;
       }
       case '/api/house': {                    // where a string hangs: kept in this browser, like everything else
         const cur = payload(D).house[body.string]; if (!cur) return no('Unknown string.');
