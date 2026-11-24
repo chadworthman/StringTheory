@@ -587,22 +587,6 @@ def goal_flash(pat, flash=0.4, sweep=4.0):
     show.period = sweep + flash * len(flashes); show.step = flash
     return show
 
-def chase_flash(pat, step=0.6, flash=0.4, chase_secs=8.0, rounds=2):
-    """Hockey: the team's stripes chase along for about chase_secs, then the whole string flashes each
-    team colour in turn with a dark blink between (like a goal celebration), then back to the chase."""
-    run = chase(pat, step)
-    loops = max(1, round(chase_secs / (step * len(pat))))
-    c_len = loops * step * len(pat)                            # whole loops, so the chase ends where it began
-    cols = list(dict.fromkeys(c for c in pat if c != (0, 0, 0)))
-    flashes = [f for c in cols for f in ([c] * TOTAL, [(0, 0, 0)] * TOTAL)] * rounds
-    period = c_len + flash * len(flashes)
-    def show(t):
-        t = t % period
-        if t < c_len: return run(t)
-        return flashes[min(int((t - c_len) / flash + 1e-6), len(flashes) - 1)]
-    show.period = period; show.step = min(step, flash)
-    return show
-
 def sunset_rise(step=1.0, band=3):
     """Sunset stripes moving out from the centre toward both ends, a whole bulb at a time, round and round
     (red, orange, amber, pink, purple, red...). No blended shades: every bulb is one of the five colours."""
@@ -750,7 +734,15 @@ def build_playlist(items, state=None):
     return show
 
 # ---- custom shows (made on the web page) ------------------------------------------------------
-EFFECT_MODES = range(32)        # DP 104 effect numbers to offer; only 0 and 18 have been seen from the app
+EFFECT_MODES = range(18)        # DP 104 effect numbers to offer: 0-17 work on the NOMA C9; 18 and up do nothing useful
+# What each built-in effect does on the NOMA C9 (AL901B), named by watching each one. The page shows these
+# unless you've named an effect yourself (state.json effect_names).
+EFFECT_NAMES = {0: 'Full Colour Cycler', 1: 'Unidirectional Wipe', 2: 'Bidirectional Wipe', 3: 'Random Color Cycler',
+                4: 'Chase', 5: 'Fade in/out Cycle', 6: 'Fade in/out Chase x 1', 7: 'Slightly Uneven Fade Chase x 1',
+                8: 'Scatter + Full Color Fade Wipe', 9: 'Single Light Chase with Tail', 10: 'Random Bulb Swapper',
+                11: 'Sparse Bulb Swapper', 12: 'Fade in then Pop', 13: 'Fade in Pattern Pop Full Color',
+                14: 'Fade out Scatter in', 15: 'Full String Fading Cycler', 16: 'Random Fading Cycler',
+                17: 'Pulsing Gradient Chase Fader'}
 def rgb(h): h = h.lstrip('#'); return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 def effect_payload(mode, speed, colours):
     """DP 104 (effect_control): 00 00 00 80 <effect> <speed 1-100> 00x7 <count> then R G B 00 00 per colour."""
@@ -845,7 +837,7 @@ SHOWS = {
     'grinchmove':     chase(GRINCH, 0.6),
     'peppermintmove': chase([RED, RED, WHITE, WHITE], 0.6),    # single-bulb alternation only blinks when chased
     'canadamove':     chase(CANADA, 0.6),
-    **{k + 'move': chase_flash(p) for k, p in HOCKEY.items()},
+    **{k + 'move': chase(p, 0.6) for k, p in HOCKEY.items()},   # a plain chase: flashes only ever mean a goal
     'valentinesmove': chase(VALENTINES, 0.6),
     'fourthchase':    chase(FOURTH, 0.6),
     'goldenanglemove': chase(GOLDEN_ANGLE, 0.6),
@@ -1264,7 +1256,7 @@ class HockeyWatcher(threading.Thread):
             if team not in wanted: del self.teams[team]
         changed = False
         for team in wanted:
-            st = self.teams.setdefault(team, {'sched_at': 0, 'games': [], 'poll_at': 0, 'score': None, 'status': {}})
+            st = self.teams.setdefault(team, {'sched_at': 0, 'games': [], 'poll_at': 0, 'score': None, 'opp': None, 'status': {}})
             if now >= st['sched_at']:
                 try:
                     games = self.get(f'/club-schedule/{team}/week/now').get('games', [])
@@ -1285,13 +1277,17 @@ class HockeyWatcher(threading.Thread):
                     mine = (d['homeTeam'] if game['home'] else d['awayTeam']).get('score')
                     theirs = (d['awayTeam'] if game['home'] else d['homeTeam']).get('score')
                     live = game['state'] in ('LIVE', 'CRIT')
-                    if game['state'] in ('FUT', 'PRE'): st['score'] = 0
+                    # Every goal is celebrated, whoever scores (the same celebration either way).
+                    if game['state'] in ('FUT', 'PRE'): st['score'] = st['opp'] = 0
                     elif live and mine is not None:
-                        if st['score'] is None: st['score'] = mine               # joined mid-game: nothing to celebrate yet
-                        elif mine > st['score']:
-                            log(f'hockey: {team} goal! {mine}-{theirs}'); self.goals.append((now, team))
-                        st['score'] = mine
-                    if game['state'] in ('FINAL', 'OFF'): st['score'] = None
+                        if st['score'] is None: st['score'], st['opp'] = mine, theirs   # joined mid-game: nothing to celebrate yet
+                        else:
+                            if mine > st['score']:
+                                log(f'hockey: {team} goal! {mine}-{theirs}'); self.goals.append((now, team))
+                            if theirs is not None and theirs > (st.get('opp') or 0):
+                                log(f'hockey: {game["opp"]} goal against {team}, {mine}-{theirs}'); self.goals.append((now, team))
+                        st['score'], st['opp'] = mine, theirs
+                    if game['state'] in ('FINAL', 'OFF'): st['score'] = st['opp'] = None
                     st['status'] = {'state': game['state'], 'score': mine, 'opp_score': theirs,
                                     'period': (d.get('periodDescriptor') or {}).get('number')}
                     st['poll_at'] = now + (5 if live else 30)

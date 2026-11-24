@@ -312,6 +312,7 @@
   .now-card a.more { margin: 6px 0 0; }
   .show[aria-pressed="true"] { border-color: var(--amber); box-shadow: 0 0 0 1px var(--amber) inset, 0 0 22px -8px var(--amber); }
   .show[aria-pressed="true"] .name::after { content: "Playing"; color: var(--amber); font-size: 14px; font-weight: 650; }
+  .show[data-after] .name::after { content: "After the game"; color: var(--muted); font-size: 14px; font-weight: 650; }
   /* the team you follow: a solid amber badge and a warm tint, so it stands out among 32 cards */
   .show[data-team][data-following] .name::after { content: "✓ Following"; background: var(--amber); color: var(--night);
                                                        border-radius: 999px; padding: 2px 10px; font-weight: 750; }
@@ -411,6 +412,8 @@
     </div>
 
     <p class="hockey-now" id="hockey-now" hidden></p>
+    <p class="hint" id="after-game" hidden></p>
+    <button type="button" class="btn2 wide" id="leave-game" hidden>Leave the game</button>
 
     <p class="hint" id="power-hint"></p>
     <button type="button" class="btn2 wide" id="to-schedule" hidden>Back to the schedule</button>
@@ -610,6 +613,8 @@
       <ul class="assign" id="assign"></ul>
       <h3 class="sub">Which end each zone starts at</h3>
       <ul class="dirs" id="dirs"></ul>
+      <h3 class="sub">Apple Home</h3>
+      <p class="note" id="hk-home-status"></p>
       <h3 class="sub">New lights</h3>
       <p class="note">Added lights in the Smart Life app? Find them here, then add each one as a string and put it in a zone.</p>
       <button type="button" class="btn2 wide" id="scan">Find new lights</button>
@@ -766,7 +771,7 @@ function render(s) {
   zone = s.zone; localStorage.setItem('zone', zone);
   if (zoneChanged && state) { tab = null; previews = null; loadPreviews(); }
   state = s; clockOffset = s.now - Date.now() / 1000;
-  renderZones(s); renderBulbs(s); renderScan(s);
+  renderZones(s); renderBulbs(s); renderScan(s); renderHome(s);
   $('#lights-name').textContent = allZones ? 'All zones' : s.lights_name;
   $('#bright-for').textContent = allZones ? 'Every zone' : 'Every show in this zone';
   const cur = s.shows.find(x => x.id === s.show) || s.shows[0];
@@ -830,6 +835,7 @@ function render(s) {
     if (fo) { const on = b.dataset.id === s.follow; fo.textContent = on ? '✓ Following games' : 'Follow games';
               fo.setAttribute('aria-pressed', on); b.toggleAttribute('data-following', on); }
     b.setAttribute('aria-pressed', b.dataset.id === s.show || (!!m && m === s.show));
+    b.toggleAttribute('data-after', !!s.game_mode && (b.dataset.id === s.after_game || (!!m && m === s.after_game)) && b.getAttribute('aria-pressed') !== 'true');
   });
   if (!tab && location.hash === '#newplaylist') { tab = 'custom'; edMode = 'playlist'; showView('create'); }
   // Start on the tab named in the link (#themes etc.; old #still and #moving links open Themes), else the last
@@ -920,6 +926,10 @@ function showHockey(s) {
   }
   $('#hockey-now').hidden = !s.follow;
   $('#hockey-now').innerHTML = s.game_mode ? `<strong>Game mode.</strong> ${esc(hockeyText(s))}` : esc(hockeyText(s));
+  // During a game, picking a show queues it for afterwards; Leave the game brings it back now.
+  const after = s.game_mode && s.shows.find(x => x.id === s.after_game);
+  $('#after-game').hidden = $('#leave-game').hidden = !s.game_mode;
+  $('#after-game').textContent = after ? `After the game: ${after.name}. Pick another show to change it.` : '';
 }
 $('#hk-stop').addEventListener('click', async () => { if (await api('/api/follow', {team: null})) toast('Not following a team'); });
 $('#hk-power').addEventListener('change', e => api('/api/follow', {team: state.follow, game_power: e.target.checked}));
@@ -1249,6 +1259,16 @@ $('#bulbs-save').addEventListener('click', async () => {
 });
 // ---- New lights: scan.py finds devices in your Tuya account and on the network; add one as a string ----
 let scanPoll = null;
+function renderHome(s) {                        // Apple Home (homekit.py): one light covering every zone
+  const h = s.homekit || {}, n = esc(h.name || 'Christmas Lights');
+  $('#hk-home-status').innerHTML = h.demo
+    ? 'With your own String Theory, your lights join the Home app as <strong>Christmas Lights</strong>: "Hey Siri, turn on Grinch Christmas Lights".'
+    : !h.running
+    ? 'Not running. On the Pi, start it with <strong>sudo systemctl start string-theory-homekit</strong>.'
+    : !h.paired
+    ? `Ready to add. In the Home app, tap <strong>+</strong>, <strong>Add Accessory</strong>, <strong>More options</strong>, pick <strong>${n}</strong> and enter <strong>${esc(h.code)}</strong>. Then say "Hey Siri, turn on the ${n.toLowerCase()}".`
+    : `In your Home app as <strong>${n}</strong>, covering every zone: "Hey Siri, turn on the ${n.toLowerCase()}", "turn them off", "set the ${n.toLowerCase()} to 40%".`;
+}
 function renderScan(s) {
   const sc = s.scan || {}, list = (sc.devices || []).filter(d => !d.in_use);
   $('#scan').disabled = !!sc.running;
@@ -1420,7 +1440,8 @@ $('#shows').addEventListener('change', async e => {
   const b = $(`#shows .show[data-id="${box.dataset.pair}"]`), name = b.querySelector('.name').textContent;
   setPlay(b, box.checked); tick();
   // Flipping the switch picks this card: plays its animated (on) or still (off) version.
-  if (await api('/api/show', {show: b.dataset.play})) toast(`Playing ${name}${box.checked ? ', animated' : ''}`);
+  const r = await api('/api/show', {show: b.dataset.play});
+  if (r) toast(`${r.game_mode ? 'After the game: ' : 'Playing '}${name}${box.checked ? ', animated' : ''}`);
 });
 
 // ---- The house picture at the top: every string where it hangs (Setup > Bulbs, "Where each string hangs"),
@@ -1506,7 +1527,7 @@ addEventListener('resize', () => { if (state) buildHouse(state); });
 
 // In All mode these go to every zone, one after another; anything else (zones, customs, location) is shared.
 const ALL_PATHS = new Set(['/api/show', '/api/speed', '/api/brightness', '/api/power', '/api/reverse', '/api/schedule',
-                           '/api/follow', '/api/goal-delay', '/api/celebrate']);
+                           '/api/follow', '/api/goal-delay', '/api/celebrate', '/api/leave-game']);
 async function api(path, body) {
   if (body && allZones && ALL_PATHS.has(path) && state?.zones.length > 1 && !('zone' in body)) {
     let err = null;
@@ -1532,6 +1553,10 @@ async function api(path, body) {
   }
 }
 
+$('#leave-game').addEventListener('click', async () => {
+  const s = await api('/api/leave-game', {});
+  if (s) toast(`Back to ${s.shows.find(x => x.id === s.show)?.name || 'your show'} until the next game`);
+});
 $('#to-schedule').addEventListener('click', async () => { if (await api('/api/power', {mode: 'auto'})) toast('Following the schedule'); });
 $('#zone-power').addEventListener('change', async e => {   // holds on or off until the schedule next agrees
   const on = e.target.checked;
@@ -1556,7 +1581,7 @@ $('#shows').addEventListener('click', async e => {
   }
   const b = e.target.closest('.show'); if (!b || (b.dataset.play || b.dataset.id) === state?.show) return;
   const s = await api('/api/show', {show: b.dataset.id});
-  if (s) toast(`Playing ${b.querySelector('.name').textContent}`);
+  if (s) toast(s.game_mode ? `${b.querySelector('.name').textContent} plays after the game` : `Playing ${b.querySelector('.name').textContent}`);
 });
 // Schedule: on at a time / around sunset / around sunrise; off at a time / after a while / around sunrise or sunset.
 const SUN_OFFSETS = [-120, -90, -60, -45, -30, -20, -15, -10, -5, 0, 5, 10, 15, 20, 30, 45, 60, 90, 120];

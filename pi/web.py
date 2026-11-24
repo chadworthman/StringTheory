@@ -284,6 +284,7 @@ def zone_clock(st, z):
     try: eng = json.loads(L.ENGINE.read_text()).get('zones', {}).get(z['id'], {})
     except Exception: eng = {}
     game = eng.get('game') if z.get('follow') else None
+    if game and z.get('skip_game') and z['skip_game'] == (hockey_status(z['follow']) or {}).get('active'): game = None
     view = L.zone_view(st, z); zm = L.zone_module(z)
     show = game or view.get('show', L.DEFAULT_SHOW)
     if zm.show_fn(show, view) is None: show = L.DEFAULT_SHOW
@@ -355,6 +356,31 @@ def save_layout(layouts):
         else: s['layout'] = codes
     tmp = L.CONFIG.with_suffix('.tmp'); tmp.write_text(json.dumps(cfg, indent=2) + '\n'); os.replace(tmp, L.CONFIG)
 
+def spoken_shows(st):
+    """Every show you can ask Apple Home for, with the words to say: themes, moving versions ("Moving
+    Grinch"), playlists and your saved patterns. Not tests, hockey teams or the editor's draft."""
+    def say(name):
+        m = re.match(r'(.*) \(moving\)$', name)
+        name = f'Moving {m.group(1)}' if m else name
+        return re.sub(r'\s+', ' ', name.replace('&', 'and').replace('(', '').replace(')', '')).strip()
+    out = []
+    for key, name, _ in SHOW_INFO:
+        if key in TESTS or key.removesuffix('move') in L.NHL_TEAM: continue
+        out.append({'id': key, 'say': say(name)})
+    for i, c in st.get('customs', {}).items():
+        if i != 'try' and c.get('name'): out.append({'id': 'custom:' + i, 'say': say(c['name'])})
+    seen = set()                                   # two shows can't share a name in Home
+    return [x for x in out if not (x['say'].lower() in seen or seen.add(x['say'].lower()))]
+
+def homekit_state(st):
+    """Apple Home (homekit.py): whether it's running and paired, its setup code until it is, and its name."""
+    try: hs = json.loads((L.DATA / 'homekit-status.json').read_text())
+    except (OSError, ValueError): hs = None
+    running = bool(hs) and time.time() - hs.get('at', 0) < 60
+    return {'running': running, 'paired': bool(hs and hs.get('paired')),
+            'code': hs.get('code') if running and not hs.get('paired') else None,
+            'name': (hs or {}).get('name') or 'Christmas Lights'}
+
 def scan_state():
     """What the last "Find new lights" scan found (scan.json, written by scan.py; no keys or addresses)."""
     try: sc = json.loads((L.DATA / 'scan.json').read_text())
@@ -414,7 +440,7 @@ def state_payload(zid=None):
     shows = []
     known = {k for k, _, _ in SHOW_INFO}
     customs = st.get('customs', {})
-    names = st.get('effect_names', {})
+    names = {**{str(k): v for k, v in L.EFFECT_NAMES.items()}, **st.get('effect_names', {})}   # yours over the defaults
     for key, name, desc in (SHOW_INFO + [(k, k, '') for k in zm.SHOWS if k not in known]
                             + [('custom:' + i, 'Custom pattern' if i == 'try' else c.get('name') or 'Custom', '') for i, c in customs.items()]):
         fn = zm.show_fn(key, view)
@@ -443,6 +469,7 @@ def state_payload(zid=None):
     try: eng = json.loads(L.ENGINE.read_text()).get('zones', {}).get(zone['id'], {})
     except (OSError, ValueError): eng = {}
     game = eng.get('game') if zone.get('follow') else None   # game mode: the engine is playing the team's theme
+    if game and zone.get('skip_game') and zone['skip_game'] == (hockey_status(zone['follow']) or {}).get('active'): game = None   # just left the game
     shown = game or view.get('show', L.DEFAULT_SHOW)
     if not any(x['id'] == shown for x in shows): shown = L.DEFAULT_SHOW   # a show since removed: the engine plays the default
     return {
@@ -457,6 +484,7 @@ def state_payload(zid=None):
                     'codes': normal_layout(L.LAYOUTS.get(n, []), b)} for n, b in L.PHYSICAL],
         'show': shown,
         'game_mode': bool(game),
+        'after_game': view.get('show', L.DEFAULT_SHOW) if game else None,   # what comes back when it's over
         'lights_name': zone.get('name') or DEFAULT_NAME,
         'shows': shows,
         # on/off: the times of the on-period happening now (else the next one); rule: how they're worked out
@@ -480,6 +508,7 @@ def state_payload(zid=None):
         'teams': [{'id': k, 'name': n} for k, n, _ in SHOW_INFO if k in L.NHL_TEAM],
         'goal_delay': int(zone.get('goal_delay') or 0),
         'scan': scan_state(),
+        'homekit': homekit_state(st),
         'hockey': hockey_status(zone.get('follow')),
         'brightnesses': list(L.BRIGHTNESS),
         'strings': [{'label': string_label(n), 'name': n, 'bulbs': b} for n, b in zstrings],
@@ -553,6 +582,15 @@ def valid_time(v):
 # With no auth.json, outside requests are refused outright, so a tunnel can never expose the page by accident.
 import base64 as _b64, hashlib, hmac, ipaddress, secrets
 AUTH = L.DATA / 'auth.json'
+LOCAL_KEY = L.DATA / 'local.key'              # lets programs on the Pi itself (the Apple Home bridge) skip the login
+def local_key():
+    """The key, made on first use (chmod 600). Only something that can read the data folder can use it."""
+    try: return LOCAL_KEY.read_text().strip()
+    except FileNotFoundError: pass
+    k = secrets.token_hex(24)
+    fd = os.open(LOCAL_KEY, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, 'w') as f: f.write(k)
+    return k
 _fails = {}                                   # outside address -> [failure times], to slow down guessing
 def from_home(handler):
     """True for a request straight from the home network: a private address, and no proxy or tunnel headers."""
@@ -577,6 +615,8 @@ class Handler(BaseHTTPRequestHandler):
     def gate(self):
         """None if the request may go ahead, else the refusal has been sent."""
         if from_home(self): return None
+        key = self.headers.get('X-String-Theory-Key')
+        if key and hmac.compare_digest(key, local_key()): return None
         who = self.headers.get('Cf-Connecting-Ip') or self.client_address[0]
         now = time.time(); recent = [t for t in _fails.get(who, []) if now - t < 600]
         if len(recent) >= 8:
@@ -613,6 +653,13 @@ class Handler(BaseHTTPRequestHandler):
             return self.send(200, HELP.read_bytes(), 'text/html; charset=utf-8')
         if path == '/api/state':
             return self.send(200, state_payload(zid))
+        if path == '/api/summary':                     # every zone at a glance, cheap to poll (the Apple Home bridge)
+            st = L.load_state()
+            return self.send(200, {'zones': [{'id': z['id'], 'name': z.get('name') or 'Lights', 'has_strings': bool(L.zone_strings(z)),
+                                              'lit': zone_lit(st, z), 'show': z.get('show', L.DEFAULT_SHOW),
+                                              'brightness': L.brightness_of(L.zone_view(st, z))} for z in L.zones_of(st)],
+                                   'brightnesses': list(L.BRIGHTNESS), 'homekit': st.get('homekit') or {},
+                                   'names': {k: n for k, n, _ in SHOW_INFO}, 'shows': spoken_shows(st)})
         if path == '/api/previews':
             st = L.load_state(); zone = pick_zone(st, zid); zm = L.zone_module(zone)
             keys = list(zm.SHOWS) + ['custom:' + i for i in st.get('customs', {})]
@@ -638,9 +685,11 @@ class Handler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path == '/api/show':
             if zm.show_fn(body.get('show'), view) is None: return self.send(400, {'error': 'Unknown show.'})
-            zone['show'] = body['show']
-            hs = hockey_status(zone.get('follow'))       # picked mid-game: the game hands the lights back until the next one
-            if hs and hs.get('active') and body['show'] != zone['follow'] + 'move': zone['skip_game'] = hs['active']
+            zone['show'] = body['show']                  # mid-game this is the show for after the game; the game keeps
+                                                         # playing (Leave the game hands the lights back early)
+        elif path == '/api/leave-game':                 # game mode off for this game: the zone's own show comes back now
+            hs = hockey_status(zone.get('follow'))
+            if hs and hs.get('active'): zone['skip_game'] = hs['active']   # no game on: nothing to leave
         elif path == '/api/power':
             mode = body.get('mode')
             if mode == 'auto':
@@ -883,6 +932,7 @@ if __name__ == '__main__':
         os.replace(AUTH.with_suffix('.tmp'), AUTH); print(f'Saved. Outside access now asks for {user} and that password.'); sys.exit(0)
     if '--check' in sys.argv:              # used by watch_code(): getting here means web.py and lights.py load
         L.zone_module({'strings': L.ORDER}); sys.exit(0)
+    local_key()                            # make local.key now, for the Apple Home bridge
     import threading
     threading.Thread(target=warm_previews, daemon=True, name='previews').start()
     watch_code()

@@ -21,7 +21,7 @@ if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 11))' 2>/dev/null; 
 fi
 python3 -c 'import venv, ensurepip' 2>/dev/null || { sudo apt-get update -q && sudo apt-get install -y -q python3-venv; }
 [ -x "$PY" ] || python3 -m venv "$VENV"
-"$PY" -m pip install -q --upgrade pip tinytuya
+"$PY" -m pip install -q --upgrade pip tinytuya HAP-python   # HAP-python: the Apple Home bridge
 echo "Python environment ready in $VENV"
 
 say "2. Your keys"
@@ -64,6 +64,7 @@ EOF
 }
 unit string-theory "String Theory light engine" "$PY $REPO/pi/lights.py run"
 unit string-theory-web "String Theory control page (port 8080)" "$PY $REPO/pi/web.py"
+unit string-theory-homekit "String Theory in Apple Home (port 51826)" "$PY $REPO/pi/homekit.py"
 sudo rm -f /usr/local/bin/lights   # replace, never write through an old symlink
 sudo tee /usr/local/bin/lights >/dev/null <<EOF
 #!/bin/sh
@@ -71,8 +72,8 @@ STRINGTHEORY_DATA="$DATA" exec "$PY" "$REPO/pi/lights.py" "\$@"
 EOF
 sudo chmod +x /usr/local/bin/lights
 sudo systemctl daemon-reload
-sudo systemctl enable -q string-theory string-theory-web
-sudo systemctl restart string-theory string-theory-web
+sudo systemctl enable -q string-theory string-theory-web string-theory-homekit
+sudo systemctl restart string-theory string-theory-web string-theory-homekit
 echo "Running. Check with: systemctl status string-theory   Logs: journalctl -u string-theory -f"
 
 say "5. Keep it on your home network"
@@ -81,8 +82,12 @@ if command -v ufw >/dev/null && sudo ufw status | grep -q "Status: active"; then
   if [ -n "$NET" ] && ask "Your firewall is on. Allow the control page from your home network ($NET) only?"; then
     sudo ufw allow from "$NET" to any port 8080 proto tcp comment 'String Theory control page'
   fi
+  if [ -n "$NET" ] && ask "Allow Apple Home to reach String Theory from your home network ($NET)?"; then
+    sudo ufw allow from "$NET" to any port 51826 proto tcp comment 'String Theory Apple Home bridge'
+    sudo ufw allow from "$NET" to any port 5353 proto udp comment 'mDNS, so Home can find it'
+  fi
 fi
-echo "The page has no login. Don't forward port 8080 on your router or publish it through a tunnel."
+echo "From your home network the page needs no login. Don't forward port 8080 on your router; for a tunnel, set a password first (see the README)."
 
 IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
 say "Done. Open http://${IP:-<this-pi>}:8080 on your phone (on your home Wi-Fi) and add it to your home screen."

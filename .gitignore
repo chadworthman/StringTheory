@@ -15,6 +15,10 @@ hockey.json
 scan.json
 # The login for outside access (a password hash)
 auth.json
+# The Pi's own key for the Apple Home bridge, and the bridge's pairing
+local.key
+homekit.state
+homekit-status.json
 *.scantmp
 # Backups made while changing devices.json or config.json
 *.bak-*

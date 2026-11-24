@@ -167,7 +167,7 @@
       case '/api/power':
         if (!['on', 'off', 'auto'].includes(body.mode)) return no('Mode must be on, off or auto.');
         st.mode = body.mode; break;
-      case '/api/follow': case '/api/goal-delay': case '/api/celebrate': 
+      case '/api/follow': case '/api/goal-delay': case '/api/celebrate': case '/api/leave-game': 
         return no('Following games needs your own String Theory at home: it watches the NHL\'s live scores and lights up for goals.');
       case '/api/direction':
         if (!['left', 'right'].includes(body.direction)) return no('Direction must be left or right.');

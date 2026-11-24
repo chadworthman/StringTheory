@@ -30,6 +30,7 @@ def demo_data():
     for z in state['zones']: z['strings'] = [rename[n] for n in z['strings']]
     state['house'] = {rename[n]: {**p, 'with': rename.get(p.get('with'))} for n, p in state['house'].items()}
     state['scan'] = {}                                            # never a real scan
+    state['homekit'] = {'demo': True}                             # Apple Home needs a real install
     st = L.load_state()
     previews = {k: web.timeline(k, st, L) for k in L.SHOWS}
     shutil.rmtree(tmp)
